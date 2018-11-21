@@ -1,12 +1,12 @@
-import socket
-from select import select
-import Pyro4
 import os
+import socket
 import time
-from middleware import Comunicator
-from transaction import Transaction, Download
-from tools import *
+from select import select
 from threading import Thread
+
+from middleware import Comunicator
+from tools import *
+from transaction import Transaction, Download
 
 
 class Client(object):
@@ -54,20 +54,40 @@ class Client(object):
             for s in rfd:
                 if s == self.sock:
                     conn, addr = self.sock.accept()
-                    print(
-                        ">Client " + str(self.c_id) + " got connection from -> ", addr
-                    )
                     pend_to_attend.append(conn)
                 elif s in pend_to_attend:
                     self.attend_client(s)
                     pend_to_attend.remove(s)
-                else:  # arreglar
-                    self.fd_dic[s].read()
+                else:
+                    t = self.fd_dic[s]
+                    t.read()
+                    if t.type == "dwn" and t.is_fail:
+                        dwn = self.download[t.dwn.id]
+                        restart = dwn.restart_piece(t.piece_id)
+                        if not restart:
+                            print("Download of " + dwn.file_name + "FAILED")
 
-            for s in wfd:  # arreglar
-                self.fd_dic[s].write()
+            for s in wfd:
+                t = self.fd_dic[s]
+                t.write()
+
+                if t.type == 'dwn':
+                    dwn = self.download[t.dwn_id]
+                    if t.finish:
+                        dwn.success_piece(t.piece_id)
+                        print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
+                        if dwn.is_finish(): #if all pieces done ==> publish file
+                            self.reconstruct_file(dwn.file_name, len(dwn.pieces))
+                    elif t.is_fail:
+                        restart = dwn.restart_piece(t.piece_id)
+                        if not restart:
+                            print("Download of " + dwn.file_name + "FAILED")
+
+
 
             self.pending = [i for i in self.pending if not i.finish and not i.is_fail]
+
+
 
     def attend_client(self, s):
         rqs = self.parse_rqs(s)
@@ -79,14 +99,9 @@ class Client(object):
                 fo = open(self.path + "/" + rqs[1], "rb")
                 fo.seek(offset)  # open a file in a specific position
                 size = int(rqs[3])  # size of the porcion of the file to send
-                if size == -1:  # send complete file
-                    size = self.get_len_file(rqs[1])  #
-                print(size)
-                rps = "%d|%s" % (len(str(size)), str(size))
-                s.send(rps.encode())
-                self.create_transaction(fo, s, "send", size)
+                self.create_transaction(fo, s, "send",size, -1, -1)
             except:
-                s.send("2|-1".encode())
+                pass
         if rqs[0] == "HAS":
             try:
                 fo = open(self.path + "/" + rqs[1], "rb")
@@ -96,18 +111,6 @@ class Client(object):
             except:
                 s.send("2|-1".encode())
 
-    def dwn_file(self, file_name):
-        potencial_loc = self.potencial_location(file_name)
-        print("BEFORE DWNLOAD", potencial_loc)
-        for p in potencial_loc:
-            self.dwn_file_from_peer(file_name, p[0], 1, 2, -1, -1)
-            try:
-                f = open(self.path + "/" + file_name, "rb")
-                print(">Client:" + str(self.c_id) + "download file" + file_name)
-                self.publish(file_name, self.get_len_file(file_name))
-                break
-            except:
-                pass
 
     def potencial_location(self, file_name):  # ok
         location = self.get_file_location(file_name)
@@ -139,14 +142,18 @@ class Client(object):
     def Download(self, file_name):
         location = self.potencial_location(file_name)
 
-        dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
-        self.max_dwn += 1
-        self.download[dwn.id] = dwn
-        dwn.build(location)
+        if len(location) > 0:
+            dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
+            self.max_dwn += 1
+            self.download[dwn.id] = dwn
+            dwn.build(location)
 
-        # for i in len(dwn.pieces):
-        #     p = dwn.pieces[i]
-        #     self.dwn_file_from_peer(file_name, p.offset, )
+            for i in range(len(dwn.pieces)):
+                p = dwn.pieces[i]
+                print("Piece:" + str(i) + " -->  ", p.attendant)
+                self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+        else:
+            print("File " + file_name + "  not available")
 
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
@@ -160,6 +167,25 @@ class Client(object):
             self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
         except:
             pass
+
+    def reconstruct_file(self, file_name, number_pieces):
+        def erase():
+            w = open(self.path + "/" + file_name, 'wb')
+            for i in range(number_pieces):
+                p = self.path + "/" + file_name + str(i)
+                try:
+                    ri = open(p,"rb")
+                    data = ri.read(bufsize)
+                    while len(data):
+                        w.write(data)
+                        data = ri.read(bufsize)
+                    ri.close()
+                    os.remove(p)
+                except:
+                    pass
+            w.close()
+            self.publish(file_name, self.get_len_file(file_name))
+        Thread(target= erase).start()
 
     def parse_rqs(self, s):  # ok
         d = s.recv(1).decode()

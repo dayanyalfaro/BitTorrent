@@ -1,5 +1,5 @@
 import Pyro4
-import time
+
 from tools import start_service
 
 
@@ -11,13 +11,11 @@ class DHT(object):
     def set(self, k, v):
         self.d[k] = v
         print(self.d)
+        print("\n")
+        print("****************************************************************")
 
     def get(self, k):
         return self.d.get(k)
-
-
-ip = "localhost"  # change
-port = 8888
 
 
 def main():

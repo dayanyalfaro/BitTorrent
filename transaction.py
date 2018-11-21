@@ -90,13 +90,10 @@ class Transaction(object):
         self.actual_copy += len(self.data)
         if self.actual_copy >= self.size:
             self.finish = True
-            # self.fi.close()
+            self.fi.close()
             if self.type == "dwn":
                 self.fo.close()
-            print("end write transaction")
 
-        # except:
-        #     print("fail write transaction")
 
     def read(self):
         bf = min(bufsize, self.size - self.actual_copy)
@@ -109,6 +106,8 @@ class Transaction(object):
             self.is_load = True
         except:
             self.is_fail = True
+            self.fi.close()
+            self.fo.close()
             print("fail read transaction")
 
 
