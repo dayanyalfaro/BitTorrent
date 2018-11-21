@@ -23,4 +23,3 @@ def start_service(obj, ip, port):
     Pyro4.Daemon.serveSimple(
         {obj: "%s:%s" % (ip, str(port))}, host=ip, port=port, ns=False
     )
-

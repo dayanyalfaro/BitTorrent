@@ -117,4 +117,3 @@ class Transaction(object):
 # d.distribute([11, 12, 13, 14, 15])
 # for k in d.pieces.values():
 #     print(k.id, k.offset, k.size, k.attendant)
-
