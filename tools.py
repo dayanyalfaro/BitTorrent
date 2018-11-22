@@ -1,11 +1,13 @@
 import Pyro4
-import math as m
+import hashlib
+import sys
 
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 idclient = "#idclient"
 sizefile = "#sizef"
+SIZE = 4 # DHT size
 
 # SPECIAL CONSTANTS
 backlog = 50
@@ -23,3 +25,6 @@ def start_service(obj, ip, port):
     Pyro4.Daemon.serveSimple(
         {obj: "%s:%s" % (ip, str(port))}, host=ip, port=port, ns=False
     )
+
+def hash(string):
+    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder % SIZE)

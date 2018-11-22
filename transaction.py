@@ -12,6 +12,7 @@ class Download(object):
         self.count_finish = 0
         self.potential = []
         self.is_fail = False
+        #TODO pause dwn
         self.paused = False
 
     def partition(self):
