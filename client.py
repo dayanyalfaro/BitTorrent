@@ -45,12 +45,17 @@ class Client(object):
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
         pend_to_attend = [self.sock]
-
+        # TODO : sacar a ka gente que este pending y que fallo por algun motivo.
         while True:
             inputs = [t.fi for t in self.pending if not t.is_load] + pend_to_attend
             outputs = [t.fo for t in self.pending if t.is_load]
 
-            rfd, wfd, efd = select(inputs, outputs, [], 2)
+            rfd, wfd, efd = select(inputs, outputs, inputs + outputs, 2)
+            # for i in inputs:
+            #     if i != self.sock and (i not in rfd):
+            #         print (i), efd
+            #         input()
+
             for s in rfd:
                 if s == self.sock:
                     conn, addr = self.sock.accept()
@@ -62,10 +67,16 @@ class Client(object):
                     t = self.fd_dic[s]
                     t.read()
                     if t.type == "dwn" and t.is_fail:
-                        dwn = self.download[t.dwn.id]
+                        dwn = self.download[t.dwn_id]
                         restart = dwn.restart_piece(t.piece_id)
+                        print("Intent restart", restart)
+
                         if not restart:
                             print("Download of " + dwn.file_name + "FAILED")
+                            dwn.is_fail = True
+                        else:
+                            p = dwn.pieces[t.piece_id]
+                            self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
 
             for s in wfd:
                 t = self.fd_dic[s]
@@ -80,14 +91,22 @@ class Client(object):
                             self.reconstruct_file(dwn.file_name, len(dwn.pieces))
                     elif t.is_fail:
                         restart = dwn.restart_piece(t.piece_id)
+                        print("Intent restart", restart)
                         if not restart:
                             print("Download of " + dwn.file_name + "FAILED")
-
+                            dwn.is_fail = True
+                        else:
+                            p = dwn.pieces[t.piece_id]
+                            self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
+                            # print ("Tranqui !!!!!!!!!!")
 
 
             self.pending = [i for i in self.pending if not i.finish and not i.is_fail]
 
-
+            # for i in self.pending:
+            #     print (i)
+            # print(len(self.pending))
+            # time.sleep(0.5)
 
     def attend_client(self, s):
         rqs = self.parse_rqs(s)
@@ -162,11 +181,9 @@ class Client(object):
         rqs = "%d|%s" % (len(rqs), rqs)
         s.send(rqs.encode())
 
-        try:
-            fo = open(self.path + "/" + file_name + str(piece_id), "wb")
-            self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
-        except:
-            pass
+        fo = open(self.path + "/" + file_name + str(piece_id), "wb")
+        self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
+
 
     def reconstruct_file(self, file_name, number_pieces):
         def erase():
