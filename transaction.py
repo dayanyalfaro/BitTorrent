@@ -12,12 +12,15 @@ class Download(object):
         self.count_finish = 0
         self.potential = []
         self.is_fail = False
+        self.paused = False
 
-    def partition(self):  # step = sqrt(len(file))
+    def partition(self):
         """
         Segmentate the file in pieces
         """
         step = m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
+        if step == 0:
+            step = self.size
         print("STEP", step, "SIZE", self.size)
         piece_id = 0
         actual_offset = 0
@@ -46,7 +49,6 @@ class Download(object):
 
     def restart_piece(self, id_piece):
         broken_node = self.pieces[id_piece].attendant
-        # TODO : bugs here fixed
         if broken_node in self.potential:
             self.potential.remove(broken_node)
         if len(self.potential) > 0:

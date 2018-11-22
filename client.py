@@ -110,7 +110,6 @@ class Client(object):
 
     def attend_client(self, s):
         rqs = self.parse_rqs(s)
-        print(">Attend client -> ", rqs)
 
         if rqs[0] == "GET":
             try:
@@ -149,7 +148,6 @@ class Client(object):
         size = -1
         try:
             s = self.connect_to_peer(addr)
-            print("connected to ask HAS FILE")
             rqs = "HAS|" + file_name
             rqs = "%d|%s" % (len(rqs), rqs)
             s.send(rqs.encode())
@@ -169,7 +167,7 @@ class Client(object):
 
             for i in range(len(dwn.pieces)):
                 p = dwn.pieces[i]
-                print("Piece:" + str(i) + " -->  ", p.attendant)
+                print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                 self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
         else:
             print("File " + file_name + "  not available")

@@ -10,7 +10,7 @@ sizefile = "#sizef"
 # SPECIAL CONSTANTS
 backlog = 50
 bufsize = 10
-totalP = 60  # the max number of pieces
+totalP = 2  # the max number of pieces
 
 
 def get_remote_node(ip, port):
