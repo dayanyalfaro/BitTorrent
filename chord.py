@@ -5,6 +5,7 @@ import threading
 import random
 import hashlib
 import time
+import sys
 
 from settings import *
 
@@ -18,7 +19,6 @@ class ChordThread(threading.Thread):
 
     def run(self):
         getattr(self.obj_, self.method_)(*self.args)
-
 
 
 def repeat_and_sleep(t):
@@ -42,7 +42,7 @@ class Node:
         self.port = local_address[1]
 
         self.id = f"{self.ip}:{self.port}"
-        self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder=sys.byteorder) % SIZE
+        self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder= sys.byteorder) % SIZE
         self._info = {'id': self.id, 'key': self.key}
 
         self.suc_lock = threading.Lock()
@@ -51,8 +51,8 @@ class Node:
         self.data_lock = threading.Lock()
         self.replica_lock = threading.Lock()
 
-        self.data = {}
-        self.replica = {}
+        self._data = {}
+        self._replica = {}
 
         self.start()
 
@@ -65,7 +65,8 @@ class Node:
         ChordThread(self, 'stabilize', ()).start()
         ChordThread(self, 'update_successors', ()).start()
         ChordThread(self, 'fix_fingers', ()).start()
-         
+        ChordThread(self, 'replicate', ()).start()
+
     # logging function
     def log(self, info:str):
         pass
@@ -88,6 +89,14 @@ class Node:
     @property
     def predecessor(self):
         return self._predecessor
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def replica(self):
+        return self._replica
 
     @staticmethod
     def isinrange(obj, start, end):
@@ -116,17 +125,16 @@ class Node:
         host = ip,
         port = port,
         ns = False
-
-    )     
+    )
 
     def get(self, key):
         info = self.find_successor(key)
 
         if info['id'] == self.id:
             if self.isinrange(key,self.predecessor['key'],self.key):
-                return self.data.get(key)
+                return self._data.get(key)
             else:
-                return self.replica.get(key)
+                return self._replica.get(key)
 
         with self.get_remote(info['id']) as remote:
             if self.isinrange(key, remote.predecessor['key'], remote.info['key']):
@@ -137,20 +145,22 @@ class Node:
     def set(self, key, value):
         info = self.find_successor(key)
 
-        self.data_lock.acquire()
-
         if info['id'] == self.id:
-            self.data[key] = value
+            self.store_at_data(key, value)
         else:
             with self.get_remote(info['id']) as remote:
-                remote.data[key] = value
+                remote.store_at_data(key, value)
 
-        self.data_lock.release()
 
-    def store(self,key,value):
+    def store_at_replica(self, key, value):
         self.replica_lock.acquire()
-        self.replica[key] = value
+        self._replica[key] = value
         self.replica_lock.release()
+
+    def store_at_data(self, key, value):
+        self.data_lock.acquire()
+        self._data[key] = value
+        self.data_lock.release()
         
     def join(self, remote_address = None):
         self.log("joined")
@@ -211,7 +221,7 @@ class Node:
         # fingers in decreasing distance
         for node in reversed(self._finger_table):
             if node:
-                if self.isinrange(node['key'],self.key,key) and \
+                if self.isinrange(node['key'], self.key, key) and \
                 self.ping(node['id']):
                     return node
         return self.info
@@ -246,21 +256,7 @@ class Node:
         self.log("get_successor")
         for suc in [self._finger_table[0]] + self._successors:
             if self.ping(suc['id']):
-
-                # self.finger_lock.acquire()
-                # self._finger_table[0] = suc
-                # self.finger_lock.release()
-
                 return suc
-
-        # self.finger_lock.acquire()
-        # self._finger_table[0] = self.info
-        # self.finger_lock.release()
-
-        # self.suc_lock.acquire()
-        # self.successors = [self.info]
-        # self.suc_lock.release()
-
         return self.info
 
     @repeat_and_sleep(1)
@@ -280,7 +276,7 @@ class Node:
         self.log("notify")
 
         if not self._predecessor or \
-        self.isinrange(node['key'],self._predecessor['key'],self.key) or \
+        self.isinrange(node['key'], self._predecessor['key'], self.key) or \
         not self.ping(self._predecessor['id']):
             self.pred_lock.acquire()
             self._predecessor = node
@@ -295,29 +291,53 @@ class Node:
 
     @repeat_and_sleep(10)
     def replicate(self):
-        for key in self.data.keys():
+        self.data_lock.acquire()
+        for key in self._data.keys():
             for suc in self.successors:
-                with self.get_remote(suc['id']) as remote:
-                    remote.store(key,self.data[key])
+                if self.ping(suc['id']):
+                    with self.get_remote(suc['id']) as remote:
+                        remote.store_at_replica(key, self._data[key])
+        self.data_lock.release()
 
     def acquire_keys(self):
+        to_del = []
         self.replica_lock.acquire()
-        for key in self.replica.keys():
-            if self.isinrange(key,self.predecessor['key'],self.key):
+
+        for key in self._replica.keys():
+            if self.isinrange(key, self.predecessor['key'], self.key):
 
                 self.data_lock.acquire()
-                self.data[key] = self.replica[key]
+                self._data[key] = self._replica[key]
                 self.data_lock.release()
+                to_del.append(key)
 
-                del self.replica[key]
+        for key in to_del:
+            del self._replica[key]
+
         self.replica_lock.release()
 
 
-# a = Node(('127.0.0.1',8000))
-# b = Node(('127.0.0.1',8001),('127.0.0.1',8000))
-# c = Node(('127.0.0.1',8002),('127.0.0.1',8000))
-# d = Node(('127.0.0.1',8004),('127.0.0.1',8000))
-
+# a = Node(('127.0.0.1',8000)) # 0
+# b = Node(('127.0.0.1',8001),('127.0.0.1',8000)) # 3
+# c = Node(('127.0.0.1',8002),('127.0.0.1',8000)) # 1
+# # d = Node(('127.0.0.1',8004),('127.0.0.1',8000))
+# e = Node(('127.0.0.1',8009),('127.0.0.1',8000)) # 5
+#
+# a.set(2,4)
+# a.set(4,16)
+# a.set(6,36)
+# a.set(7,49)
+#
+# lst = [a,c,b,e]
+#
+# while 1:
+#     for n in lst:
+#         print("_________________________________________________")
+#         print(f"Node {n.info['key']}")
+#         print("_________________________________________________")
+#         print("data: ",n._data)
+#         print("replica: ",n._replica)
+#         time.sleep(5)
 
 # while 1:
 #     print ("___________________")
@@ -341,31 +361,64 @@ class Node:
 #     # b.fix_fingers()
 #     time.sleep(5)
 
+# if __name__ == "__main__":
+#     import sys
+#     if len(sys.argv) == 2:
+#         port = int(sys.argv[1])
+#         a = Node(('127.0.0.1',port))
+#         while 1:
+#             print ("___________________")
+#             with a.get_remote(f'127.0.0.1:{port}') as r:
+#                 # print(r.info, r.finger_table[0], " | " ,  r.predecessor)
+#                 print(r.info)
+#                 for i in range(len(r.finger_table)):
+#                     print(((r.info['key'] + 2**i)% SIZE),' : ', r.finger_table[i])
+#             print ("___________________")
+#             time.sleep(5)
+#
+#     else:
+#         port_root = int(sys.argv[1])
+#         port = int(sys.argv[2])
+#         a = Node(('127.0.0.1', port),('127.0.0.1', port_root))
+#         while 1:
+#             print("___________________")
+#             with a.get_remote(f'127.0.0.1:{port}') as r:
+#                 # print(r.info, r.finger_table[0], " | ", r.predecessor)
+#                 print(r.info)
+#                 for i in range(len(r.finger_table)):
+#                     print(((r.info['key'] + 2**i) % SIZE), ' : ', r.finger_table[i])
+#             print("___________________")
+#             time.sleep(5)
+
+
 if __name__ == "__main__":
     import sys
     if len(sys.argv) == 2:
         port = int(sys.argv[1])
         a = Node(('127.0.0.1',port))
         while 1:
-            print ("___________________")
-            with a.get_remote(f'127.0.0.1:{port}') as r:
-                # print(r.info, r.finger_table[0], " | " ,  r.predecessor)
-                print(r.info)
-                for i in range(len(r.finger_table)):
-                    print(((r.info['key'] + 2**i)% SIZE),' : ', r.finger_table[i])
-            print ("___________________")
+            print("_________________________________________________")
+            print(f"Node {a.info['key']}")
+            print("_________________________________________________")
+            print("data: ",a._data)
+            print("replica: ",a._replica)
             time.sleep(5)
 
     else:
         port_root = int(sys.argv[1])
         port = int(sys.argv[2])
         a = Node(('127.0.0.1', port),('127.0.0.1', port_root))
+        count = 0
         while 1:
-            print("___________________")
-            with a.get_remote(f'127.0.0.1:{port}') as r:
-                # print(r.info, r.finger_table[0], " | ", r.predecessor)
-                print(r.info)
-                for i in range(len(r.finger_table)):
-                    print(((r.info['key'] + 2**i) % SIZE), ' : ', r.finger_table[i])
-            print("___________________")
+            count += 1
+            if port == 8009 and count == 5:
+                a.set(2, 4)
+                a.set(4, 16)
+                a.set(6, 36)
+                a.set(7, 49)
+            print("_________________________________________________")
+            print(f"Node {a.info['key']}")
+            print("_________________________________________________")
+            print("data: ",a._data)
+            print("replica: ",a._replica)
             time.sleep(5)
