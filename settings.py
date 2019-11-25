@@ -1,3 +1,4 @@
 # log size of the ring
-LOGSIZE = 3
+LOGSIZE = 4
 SIZE = 1<<LOGSIZE
+
