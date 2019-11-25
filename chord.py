@@ -9,7 +9,6 @@ import sys
 
 from settings import *
 
-
 class ChordThread(threading.Thread):
     def __init__(self, obj, method, args):
         threading.Thread.__init__(self)
@@ -119,6 +118,7 @@ class Node:
     def start(self):
         self.thread = ChordThread(self,'start_service',(self.ip,self.port))
         self.thread.start()
+
 
     def start_service(self,ip,port):
         Pyro4.Daemon.serveSimple(
@@ -230,7 +230,6 @@ class Node:
 
     def closest_preceding_finger(self, key):
         # self.log("closest_preceding_finger")
-
         # fingers in decreasing distance
         for node in reversed(self._finger_table):
             if node:
@@ -275,6 +274,7 @@ class Node:
     @repeat_and_sleep(2)
     def update_successors(self):
         self.log("update_successors")
+
         suc = self.get_successor()
         # if we are not alone in the ring
         if suc['id'] != self.id:
@@ -504,3 +504,4 @@ if __name__ == "__main__":
 # print('12 inserted')
 # e.set(14, 196)
 # print('14 inserted')
+
