@@ -7,12 +7,12 @@ maxclient = "#maxclient"
 allfiles = "#allfiles"
 idclient = "#idclient"
 sizefile = "#sizef"
-SIZE = 4 # DHT size
+SIZE = 20 # DHT size
 
 # SPECIAL CONSTANTS
 backlog = 50
 bufsize = 10
-totalP = 2  # the max number of pieces
+totalP = 20  # the max number of pieces
 
 
 def get_remote_node(ip, port):
@@ -27,4 +27,4 @@ def start_service(obj, ip, port):
     )
 
 def hash(string):
-    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder % SIZE)
+    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (1 << SIZE)

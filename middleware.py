@@ -24,33 +24,33 @@ class Comunicator(object):
 
     def get_id(self):
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        id = dht.get(maxclient)
-        dht.set(maxclient, id + 1)
-        dht.set(idclient + str(id), (self.addr_listen))
+        id = dht.get(hash(maxclient))
+        dht.set(hash(maxclient), id + 1)
+        dht.set(hash(idclient + str(id)), (self.addr_listen))
         return id
 
     def update_idclient(self, id, addr):
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        dht.set(idclient + str(id), addr)
+        dht.set(hash(idclient + str(id)), addr)
 
     def publish(self, torrent, c_id, size):  # ver lo del id del cliente
         """
             Publish a torrent in the tracker
         """
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        v = dht.get(torrent)
+        v = dht.get(hash(torrent))
 
         if v == None:
-            dht.set(torrent, [c_id])
-            all = dht.get(allfiles)
+            dht.set(hash(torrent), [c_id])
+            all = dht.get(hash(allfiles))
             all.append(torrent)
-            dht.set(allfiles, all)
+            dht.set(hash(allfiles), all)
             k = sizefile + "|" + torrent
-            dht.set(k, size)
+            dht.set(hash(k), size)
         else:
             if not v.__contains__(c_id):
                 v.append(c_id)
-                dht.set(torrent, v)
+                dht.set(hash(torrent), v)
         print("client ", c_id, "published file ", torrent)
 
     def all_files(self):
@@ -58,36 +58,27 @@ class Comunicator(object):
             List all files availables
         """
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        files = dht.get(allfiles)
+        files = dht.get(hash(allfiles))
         return files
 
     def get_len_file(self, file_name):
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        l = dht.get(sizefile + "|" + file_name)
+        l = dht.get(hash(sizefile + "|" + file_name ))
         return l
 
     def get_location(self, file_name):  # asumiendo q la llave es el nombre del file
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        nodes_ids = dht.get(file_name)
+        nodes_ids = dht.get(hash(file_name))
 
         addrs = []
         for n in nodes_ids:
-            d = dht.get(idclient + str(n))
+            d = dht.get(hash(idclient + str(n)))
             addrs.append(d)
         return addrs
 
-    def get_torrent(self):  # return the torrent file
-        pass
-
 
 def main():
-    path = "/home/dalianys/Escritorio/Distribuidos/BitTorrent/BitTorrent/Storage"
-    f = open(path + "txt", "w")
-    # f.write(str(4))
-    try:
-        os.mkdir(path)
-    except:
-        print("can not create directory")
+    print("middleware")
 
 
 if __name__ == "__main__":

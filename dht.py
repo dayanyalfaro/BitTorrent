@@ -1,6 +1,6 @@
 import Pyro4
 
-from tools import start_service
+from tools import *
 
 
 @Pyro4.expose
@@ -21,17 +21,14 @@ class DHT(object):
 def main():
     print("hello")
     d = DHT()
-    d.d["#maxclient"] = 0
-    d.d["#allfiles"] = []
+    d.d[hash("#maxclient")] = 0
+    d.d[hash("#allfiles")] = []
+
     print(d.d)
+
 
     ip = "localhost"  # change
     port = 8888
     start_service(d, ip, port)
 
-# gggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggggg
-#fvfgvtgt
-#vtgt
-#eefrfrgrgggggggggggggggggggggggggggggggg
-#gggtgtgtgtggggggggggggggggggggggggggggggggggggggg
 main()
