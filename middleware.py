@@ -16,12 +16,6 @@ class Comunicator(object):
         self.dht_ip = d_ip
         self.dht_port = d_port
 
-    def update_client(self, addr):
-        """
-            update the Client address
-        """
-        self.addr_listen = addr
-
     def get_id(self):
         dht = get_remote_node(self.dht_ip, self.dht_port)
         id = dht.get(hash(maxclient))
@@ -33,25 +27,26 @@ class Comunicator(object):
         dht = get_remote_node(self.dht_ip, self.dht_port)
         dht.set(hash(idclient + str(id)), addr)
 
-    def publish(self, torrent, c_id, size):  # ver lo del id del cliente
+    def publish(self, file_name, c_id, size, torrent):  # ver lo del id del cliente
         """
             Publish a torrent in the tracker
         """
         dht = get_remote_node(self.dht_ip, self.dht_port)
-        v = dht.get(hash(torrent))
+        v = dht.get(hash(file_name))
 
         if v == None:
-            dht.set(hash(torrent), [c_id])
+            dht.set(hash(file_name), [c_id])
             all = dht.get(hash(allfiles))
-            all.append(torrent)
+            all.append(file_name)
             dht.set(hash(allfiles), all)
-            k = sizefile + "|" + torrent
+            k = sizefile + "|" + file_name
             dht.set(hash(k), size)
+            dht.set(hash(file_name + ".torrent"), torrent) #first time to publish this .torrent
         else:
             if not v.__contains__(c_id):
                 v.append(c_id)
-                dht.set(hash(torrent), v)
-        print("client ", c_id, "published file ", torrent)
+                dht.set(hash(file_name), v)
+        print("client ", c_id, "published file ", file_name)
 
     def all_files(self):
         """
@@ -75,6 +70,11 @@ class Comunicator(object):
             d = dht.get(hash(idclient + str(n)))
             addrs.append(d)
         return addrs
+
+    def get_torrent(self, torrent_name):
+        dht = get_remote_node(self.dht_ip, self.dht_port)
+        t = dht.get(hash(torrent_name))
+        return t
 
 
 def main():

@@ -129,7 +129,6 @@ class Client(object):
             except:
                 s.send("2|-1".encode())
 
-
     def potencial_location(self, file_name):  # ok
         location = self.get_file_location(file_name)
         p = []
@@ -182,7 +181,6 @@ class Client(object):
         fo = open(self.path + "/" + file_name + str(piece_id), "wb")
         self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
 
-
     def reconstruct_file(self, file_name, number_pieces):
         def erase():
             w = open(self.path + "/" + file_name, 'wb')
@@ -199,7 +197,7 @@ class Client(object):
                 except:
                     pass
             w.close()
-            self.publish(file_name, self.get_len_file(file_name))
+            self.publish(file_name, self.get_len_file(file_name), None)
         Thread(target= erase).start()
 
     def parse_rqs(self, s):  # ok
@@ -239,6 +237,23 @@ class Client(object):
                 except:
                     print("no id file open")
 
+
+    #TODO: with download in copy from a directory
+    def copy_from_directory(self, p_source, file_name):
+        p_dest = self.path + "/" + file_name
+
+        try:
+            size = self.read_len_file(p_source, file_name)
+            dwn = Download(-1, file_name, size)
+            dwn.build()
+
+            fi = open(p_source, "rb")
+            fo = open(p_dest, "wb")
+            self.create_transaction(fi,fo,"copy", size, -1, -1)
+
+        except:
+            print("failed open file in copy from a directory")
+
     def copy_file_from_directory(self, p_source, name):
         p_dest = self.path + "/" + name
 
@@ -252,21 +267,72 @@ class Client(object):
                     fo.write(d)
                     size += len(d)
                     d = fi.read(bufsize)
-                self.publish(name, size)
+
                 fi.close()
                 fo.close()
+
+                dwn = Download(-1,name, size)
+                dwn.partition()
+                torrent = self.torrent_metadata(dwn)
+
+                self.publish(name, size, torrent)  #publish a file location
             except:
-                print("error: failed open file in copy from a directory")
+                print("failed open file in copy from a directory")
 
         self.pub.append(Thread(target=copy, args=()))
         self.pub[-1].start()
 
+    def torrent_metadata(self, dwn):
+        t = {}
+        t["file"] = dwn.file_name
+        t["size"] = dwn.size
+        count_pieces = len(dwn.pieces)
+        t["count_piece"] = count_pieces
+        print(count_pieces)
+
+        for i in range(count_pieces):
+            p = dwn.pieces[i]
+            try:
+                f = open(self.path + "/" + dwn.file_name, "rb")
+                f.seek(p.offset)
+                p_data = f.read(p.size)
+
+                t["len_pieces|" + str(p.id)] = p.size
+                t["hash_piece|" + str(p.id)] = hashb(p_data)
+            except:
+                print("failed when intent open file in Torrent metadata")
+        return t
+
+    def get_torrent(self, torrent_name):
+        t = self.comunicator.get_torrent(torrent_name)
+        return t
+
+    #TODO create a real .torrent and storage in the path
+    def create_torrent(self):
+        pass
+    #TODO: cargar un .torrent ya descargado para descargar el file correspondiente
+    def read_torrent(self):
+        pass
+
+
+
     def get_len_file(self, file_name):
         return self.comunicator.get_len_file(file_name)
 
-    def publish(self, name, size):
-        torrent = name
-        self.comunicator.publish(torrent, self.c_id, size)
+    def read_len_file(self, path, file_name):
+        try:
+            f = open(path + "/" + file_name, "rb")
+            d = f.read(bufsize)
+            size = 0
+            while d:
+                size += len(d)
+                d = f.read(bufsize)
+            return size
+        except:
+            return -1
+
+    def publish(self, file_name, size, torrent):
+        self.comunicator.publish(file_name, self.c_id, size, torrent)
 
     def get_file_location(self, file):
         nodes = self.comunicator.get_location(file)

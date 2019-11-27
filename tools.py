@@ -28,3 +28,18 @@ def start_service(obj, ip, port):
 
 def hash(string):
     return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (1 << SIZE)
+
+def hashb(data):
+    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder ) % (1 << SIZE)
+
+def main():
+    print("tools")
+
+    f = open("./hello", "rb")
+    d = f.read(10)
+    print(d.decode())
+    print(hash(d.decode()))
+    print(hashb(d))
+
+if __name__ == "__main__":
+    main()
