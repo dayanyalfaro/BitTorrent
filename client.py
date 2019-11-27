@@ -1,6 +1,7 @@
 import os
 import socket
 import time
+import torrent_parser
 from select import select
 from threading import Thread
 
@@ -254,30 +255,30 @@ class Client(object):
         except:
             print("failed open file in copy from a directory")
 
-    def copy_file_from_directory(self, p_source, name):
-        p_dest = self.path + "/" + name
+    def copy_file_from_directory(self, p_source, file_name):
+        p_dest = self.path + "/" + file_name
 
         def copy():
-            try:
-                fi = open(p_source, "rb")
-                fo = open(p_dest, "wb")
+            # try:
+            fi = open(p_source, "rb")
+            fo = open(p_dest, "wb")
+            d = fi.read(bufsize)
+            size = 0
+            while d:
+                fo.write(d)
+                size += len(d)
                 d = fi.read(bufsize)
-                size = 0
-                while d:
-                    fo.write(d)
-                    size += len(d)
-                    d = fi.read(bufsize)
 
-                fi.close()
-                fo.close()
+            fi.close()
+            fo.close()
 
-                dwn = Download(-1,name, size)
-                dwn.partition()
-                torrent = self.torrent_metadata(dwn)
-
-                self.publish(name, size, torrent)  #publish a file location
-            except:
-                print("failed open file in copy from a directory")
+            dwn = Download(-1,file_name, size)
+            dwn.partition()
+            metadata = self.torrent_metadata(dwn)
+            self.create_torrent( metadata)
+            self.publish(file_name, size, metadata)  #publish a file location
+            # except:
+            #     print("failed open file in copy from a directory")
 
         self.pub.append(Thread(target=copy, args=()))
         self.pub[-1].start()
@@ -297,7 +298,7 @@ class Client(object):
                 f.seek(p.offset)
                 p_data = f.read(p.size)
 
-                t["len_pieces|" + str(p.id)] = p.size
+                t["len_piece|" + str(p.id)] = p.size
                 t["hash_piece|" + str(p.id)] = hashb(p_data)
             except:
                 print("failed when intent open file in Torrent metadata")
@@ -307,13 +308,15 @@ class Client(object):
         t = self.comunicator.get_torrent(torrent_name)
         return t
 
-    #TODO create a real .torrent and storage in the path
-    def create_torrent(self):
-        pass
-    #TODO: cargar un .torrent ya descargado para descargar el file correspondiente
-    def read_torrent(self):
-        pass
+    def create_torrent(self,metadata):
+        file_name = metadata["file"]
+        path = self.path + "/" + file_name
+        torrent_parser.create_torrent_file(f'{path}.torrent', metadata)
 
+    def parse_torrent(self, file_name):
+        path = self.path + "/" +file_name + ".torrent"
+        t = torrent_parser.parse_torrent_file(path)
+        return t
 
 
     def get_len_file(self, file_name):
@@ -344,6 +347,7 @@ class Client(object):
 
 def main():
     print("hello")
+
 
 
 if __name__ == "__main__":
