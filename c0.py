@@ -13,7 +13,7 @@ c0 = Client("localhost", 8000, "localhost", 8888, p + "0", ("localhost", 9000))
 time.sleep(1)
 # c0.copy_file_from_directory("./foto.jpg", "foto.jpg")
 # c0.copy_file_from_directory("./foto2.png", "foto2.png")
-c0.copy_file_from_directory("./hello", "hello")
+
 
 time.sleep(4)
 # d = Download(-1,"hello", 10)
@@ -24,6 +24,7 @@ time.sleep(4)
 # p = c0.parse_torrent("hello")
 # print("Torrent parse" ,p)
 c0.copy_file_from_directory("./foto2.png", "foto2.png")
+c0.copy_file_from_directory("./hello", "hello")
 
 
 

@@ -18,6 +18,7 @@ class Client(object):
         self.path = path
         self.comunicator = Comunicator(addr_listen, dht_ip, dht_port)
         self.download = {}
+        self.history = None   #TODO history of downloads
         self.max_dwn = 0
         self.pending = []
         self.fd_dic = {}
@@ -238,23 +239,6 @@ class Client(object):
                 except:
                     print("no id file open")
 
-
-    #TODO: with download in copy from a directory
-    def copy_from_directory(self, p_source, file_name):
-        p_dest = self.path + "/" + file_name
-
-        try:
-            size = self.read_len_file(p_source, file_name)
-            dwn = Download(-1, file_name, size)
-            dwn.build()
-
-            fi = open(p_source, "rb")
-            fo = open(p_dest, "wb")
-            self.create_transaction(fi,fo,"copy", size, -1, -1)
-
-        except:
-            print("failed open file in copy from a directory")
-
     def copy_file_from_directory(self, p_source, file_name):
         p_dest = self.path + "/" + file_name
 
@@ -282,6 +266,11 @@ class Client(object):
 
         self.pub.append(Thread(target=copy, args=()))
         self.pub[-1].start()
+
+    def download_torrent(self, file_name):
+        t_name = file_name + ".torrent"
+        t = self.get_torrent(t_name)
+        self.create_torrent(t)
 
     def torrent_metadata(self, dwn):
         t = {}
@@ -317,7 +306,6 @@ class Client(object):
         path = self.path + "/" +file_name + ".torrent"
         t = torrent_parser.parse_torrent_file(path)
         return t
-
 
     def get_len_file(self, file_name):
         return self.comunicator.get_len_file(file_name)

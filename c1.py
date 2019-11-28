@@ -15,4 +15,4 @@ f2 = "dht.py"
 # c1.copy_file_from_directory("./dht.py", "dht.py")
 c1.copy_file_from_directory("./hello", "hello")
 time.sleep(4)
-c1.Download("dht.py")
+c1.download_torrent("hello")
