@@ -301,6 +301,7 @@ class Node:
             self.pred_lock.release()
 
             self.acquire_keys()
+            self.give_keys()
 
     @repeat_and_sleep(2)
     def fix_fingers(self):
@@ -335,6 +336,21 @@ class Node:
             del self._replica[key]
 
         self.replica_lock.release()
+
+    def give_keys(self):
+        to_del = []
+        self.data_lock.acquire()
+
+        for key in self._data.keys():
+            if not self.isinrange(key, self.predecessor['key'], self.key):
+                with self.get_remote(self.predecessor['id']) as remote:
+                    remote.store_at_data(key,self._data[key])
+                    to_del.append(key)
+
+        for key in to_del:
+            del self._data[key]
+
+        self.data_lock.release()
 
 
 # a = Node(('127.0.0.1',8000)) # 0
