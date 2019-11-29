@@ -84,6 +84,7 @@ class Transaction(object):
         self.size = size
         self.actual_copy = 0
         self.data = None
+        self.data_dwn = "".encode()
         self.is_load = False
         self.is_fail = False
         self.finish = False
@@ -95,6 +96,7 @@ class Transaction(object):
         # TODO : Poner try para captar la excepcion, la escritura fallo
         if self.type == "dwn":
             self.fo.write(self.data)
+            self.data_dwn += self.data
         if self.type == "send":
             self.fo.send(self.data)
         self.is_load = False

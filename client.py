@@ -2,6 +2,7 @@ import os
 import socket
 import time
 import torrent_parser
+import json
 from select import select
 from threading import Thread
 
@@ -76,7 +77,7 @@ class Client(object):
                         if not restart:
                             print("Download of " + dwn.file_name + "FAILED")
                             dwn.is_fail = True
-                        else:
+                        else: #si se pudo arreglar => se encargara otro nodo de ese piece
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
 
@@ -87,10 +88,23 @@ class Client(object):
                 if t.type == 'dwn':
                     dwn = self.download[t.dwn_id]
                     if t.finish:
-                        dwn.success_piece(t.piece_id)
-                        print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
-                        if dwn.is_finish(): #if all pieces done ==> publish file
-                            self.reconstruct_file(dwn.file_name, len(dwn.pieces))
+                        check = self.check_piece_with_torrent(t.piece_id,t.data_dwn,t.size, dwn.file_name)#check if the piece is correct
+                        if check:
+                            dwn.success_piece(t.piece_id)
+                            print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
+                            if dwn.is_finish():  # if all pieces done ==> publish file
+                                self.reconstruct_file(dwn.file_name, len(dwn.pieces))
+                        else:
+                            print("Incorrect Piece was download")
+                            os.remove(self.path + "/" + dwn.file_name + str(t.piece_id))
+                            restart = dwn.restart_piece(t.piece_id)
+
+                            if not restart:
+                                print("Download of " + dwn.file_name + "FAILED")
+                                dwn.is_fail = True
+                            else:
+                                p = dwn.pieces[t.piece_id]
+                                self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
                     elif t.is_fail:
                         restart = dwn.restart_piece(t.piece_id)
                         print("Intent restart", restart)
@@ -100,15 +114,25 @@ class Client(object):
                         else:
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
-                            # print ("Tranqui !!!!!!!!!!")
 
 
             self.pending = [i for i in self.pending if not i.finish and not i.is_fail]
+            #TODO delete transaction from fd_dic
+
 
             # for i in self.pending:
             #     print (i)
             # print(len(self.pending))
             # time.sleep(0.5)
+
+
+    def check_piece_with_torrent(self,p_id, p_data, p_size, file_name):
+        t = self.parse_torrent(file_name)
+        p_hash = hashb(p_data)
+        if p_size != t["len_piece|" + str(p_id)]:
+            return False
+        else:
+            return p_hash == t["hash_piece|" + str(p_id)]
 
     def attend_client(self, s):
         rqs = self.parse_rqs(s)
@@ -158,20 +182,24 @@ class Client(object):
         return size >= 0
 
     def Download(self, file_name):
-        location = self.potencial_location(file_name)
+        try:
+            t = open(self.path + "/" + file_name  + ".torrent" , "r")
+            location = self.potencial_location(file_name)
 
-        if len(location) > 0:
-            dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
-            self.max_dwn += 1
-            self.download[dwn.id] = dwn
-            dwn.build(location)
+            if len(location) > 0:
+                dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
+                self.max_dwn += 1
+                self.download[dwn.id] = dwn
+                dwn.build(location)
 
-            for i in range(len(dwn.pieces)):
-                p = dwn.pieces[i]
-                print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
-                self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-        else:
-            print("File " + file_name + "  not available")
+                for i in range(len(dwn.pieces)):
+                    p = dwn.pieces[i]
+                    print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
+                    self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+            else:
+                print("File " + file_name + "  not available")
+        except:
+            print("You need download " + file_name + ".torrent before download file")
 
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
@@ -271,6 +299,7 @@ class Client(object):
         t_name = file_name + ".torrent"
         t = self.get_torrent(t_name)
         self.create_torrent(t)
+        print("Client " + str(self.c_id) + " download " + file_name + ".torrent")
 
     def torrent_metadata(self, dwn):
         t = {}
@@ -334,7 +363,8 @@ class Client(object):
 
 
 def main():
-    print("hello")
+    print("client.py")
+    f
 
 
 
