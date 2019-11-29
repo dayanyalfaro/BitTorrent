@@ -194,22 +194,23 @@ class Node:
             return False
 
     def find_successor(self, key):
-        self.log("find_successor")
+
         # global debug
         # if debug:
         #     print('entering find_successor')
         # if the key belongs to this node
         if self._predecessor and \
         self.isinrange(key,self._predecessor['key'],self.key):
+            self.log("find_successor")
             return self.info
         pred = self.find_predecessor(key)
         # if debug:
         #     print('find_predecessor passed')
         with self.get_remote(pred['id']) as pred_remote:
+            self.log("find_successor")
             return pred_remote.get_successor()
 
     def find_predecessor(self, key):
-        # self.log("find_predecessor")
         # global debug
         # if debug:
         #     print('entering find_predecessor')
@@ -218,6 +219,7 @@ class Node:
 
         # if there is only one node
         if successor['id'] == self.id:
+            self.log("find_predecessor")
             return node
 
         while not self.isinrange(key, node['key'], successor['key']):
@@ -226,16 +228,21 @@ class Node:
             with self.get_remote(node['id']) as node_remote:
                 successor = node_remote.finger_table[0]
 
+        self.log("find_predecessor")
         return node
 
     def closest_preceding_finger(self, key):
-        # self.log("closest_preceding_finger")
+        # if key == self.key:
+        #     self.log("closest_preceding_finger pred")
+        #     return self._predecessor
         # fingers in decreasing distance
         for node in reversed(self._finger_table):
             if node:
-                if self.isinrange(node['key'], self.key, key) and \
+                if self.isinrange(node['key'], self.key, key - 1) and \
                 self.ping(node['id']):
+                    self.log("closest_preceding_finger other " +  str(node['key']))
                     return node
+        self.log("closest_preceding_finger me")
         return self.info
 
     @repeat_and_sleep(2)
@@ -307,7 +314,9 @@ class Node:
     def fix_fingers(self):
         i = random.randrange(LOGSIZE)
         self.log(f"fix_fingers at {i}")
+        self.finger_lock.acquire()
         self._finger_table[i] = self.find_successor((self.key + 2**i)% SIZE)
+        self.finger_lock.release()
 
     @repeat_and_sleep(10)
     def replicate(self):
@@ -499,10 +508,10 @@ if __name__ == "__main__":
 
 
 # a = Node(('127.0.0.1',8000)) # 0
+# e = Node(('127.0.0.1',8009),('127.0.0.1',8000)) # 13
+# d = Node(('127.0.0.1',8001),('127.0.0.1',8000)) # 11
 # b = Node(('127.0.0.1',8003),('127.0.0.1',8000)) # 3
 # c = Node(('127.0.0.1',8006),('127.0.0.1',8000)) # 7
-# d = Node(('127.0.0.1',8001),('127.0.0.1',8000)) # 11
-# e = Node(('127.0.0.1',8009),('127.0.0.1',8000)) # 13
 # e = Node(('127.0.0.1',8004),('127.0.0.1',8000)) # 15
 #
 #
