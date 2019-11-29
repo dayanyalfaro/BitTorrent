@@ -232,9 +232,7 @@ class Node:
         return node
 
     def closest_preceding_finger(self, key):
-        # if key == self.key:
-        #     self.log("closest_preceding_finger pred")
-        #     return self._predecessor
+        # self.log("closest_preceding_finger")
         # fingers in decreasing distance
         for node in reversed(self._finger_table):
             if node:
