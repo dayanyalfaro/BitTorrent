@@ -125,7 +125,6 @@ class Client(object):
             # print(len(self.pending))
             # time.sleep(0.5)
 
-
     def check_piece_with_torrent(self,p_id, p_data, p_size, file_name):
         t = self.parse_torrent(file_name)
         p_hash = hashb(p_data)
