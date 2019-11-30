@@ -20,6 +20,7 @@ class Client(object):
         self.comunicator = Comunicator(addr_listen, dht_ip, dht_port)
         self.download = {}
         self.history = None   #TODO history of downloads
+        self.files = None  #TODO
         self.max_dwn = 0
         self.pending = []
         self.fd_dic = {}
@@ -30,7 +31,7 @@ class Client(object):
         try:
             os.mkdir(self.path)
         except:
-            pass
+            print("no open Storage")
 
         self.set_id()
 
@@ -181,9 +182,27 @@ class Client(object):
         return size >= 0
 
     def Download(self, file_name):
+        """
+        
+        :param file_name: Name of the file to download
+        :return: 0: is posible download file
+                 1: if the .torrent is needed
+                 2: if the file exist
+                 3: not available file
+        """
         try:
             t = open(self.path + "/" + file_name  + ".torrent" , "r")
+        except:
+            print("You need download " + file_name + ".torrent before download file")
+            return 1
+
+        try:
+            f = open(self.path + "/" + file_name , "r")
+            print("The file " + file_name + " exist" )
+            return 2
+        except:
             location = self.potencial_location(file_name)
+            print("location", location)
 
             if len(location) > 0:
                 dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
@@ -195,10 +214,11 @@ class Client(object):
                     p = dwn.pieces[i]
                     print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                     self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+                return 0  #the download start
             else:
-                print("File " + file_name + "  not available")
-        except:
-            print("You need download " + file_name + ".torrent before download file")
+                print("The file " + file_name + " is not available")
+                return 3
+
 
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
@@ -306,7 +326,7 @@ class Client(object):
         t["size"] = dwn.size
         count_pieces = len(dwn.pieces)
         t["count_piece"] = count_pieces
-        print(count_pieces)
+        print(dwn.file_name + ".torrent metadata count pieces", count_pieces)
 
         for i in range(count_pieces):
             p = dwn.pieces[i]
@@ -363,7 +383,7 @@ class Client(object):
 
 def main():
     print("client.py")
-    f
+
 
 
 

@@ -10,14 +10,14 @@ time.sleep(4)
 f = "tesis.pdf"
 f2 = "dht.py"
 
-
-c3.download_torrent("hello")
-c3.Download("hello")
+#
+# c3.download_torrent("hello")
+# c3.Download("hello")
 # c3.Download("dht.py")
 time.sleep(1)
 c3.download_torrent("dht.py")
 c3.Download("dht.py")
 time.sleep(1)
-c3.download_torrent("foto2.png")
-c3.Download("foto2.png")
+c3.download_torrent("peli.avi")
+c3.Download("peli.avi")
 

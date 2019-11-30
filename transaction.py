@@ -13,13 +13,14 @@ class Download(object):
         self.potential = []
         self.is_fail = False
         #TODO pause dwn
-        self.paused = False
+        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution']
 
     def partition(self):
         """
         Segmentate the file in pieces
         """
-        step = m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
+        cantPieces = m.floor(m.log2(self.size))
+        step = m.floor(self.size/cantPieces)# cantPieces constant m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
         if step == 0:
             step = self.size
         print("STEP", step, "SIZE", self.size)

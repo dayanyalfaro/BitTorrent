@@ -36,6 +36,7 @@ class Comunicator(object):
 
         if v == None:
             dht.set(hash(file_name), [c_id])
+            print(dht.get(hash(file_name)))
             all = dht.get(hash(allfiles))
             all.append(file_name)
             dht.set(hash(allfiles), all)

@@ -21,7 +21,7 @@ c0.copy_file_from_directory("./dht.py", "dht.py")
 # c0.create_torrent("hello", t)
 # p = c0.parse_torrent("hello")
 # print("Torrent parse" ,p)
-c0.copy_file_from_directory("./foto2.png", "foto2.png")
+# c0.copy_file_from_directory("./kramer.avi", "kramer.avi")
 c0.copy_file_from_directory("./hello", "hello")
 
 
