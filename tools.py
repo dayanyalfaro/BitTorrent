@@ -15,6 +15,7 @@ sizefile = "#sizef"
 backlog = 50
 bufsize = 1024*1024
 totalP = 20  # the max number of pieces
+histsize = 2
 
 
 def get_remote_node(ip, port):
@@ -37,11 +38,12 @@ def hashb(data):
 def main():
     print("tools")
 
-    f = open("./hello", "rb")
-    d = f.read(10)
-    print(d.decode())
-    print(hash(d.decode()))
-    print(hashb(d))
+    import math
+    a = math.log2(1024)
+    print(a)
+    print(math.log2(1024*1024))
+    print(math.log2(1024*1024*1024))
+
 
 if __name__ == "__main__":
     main()

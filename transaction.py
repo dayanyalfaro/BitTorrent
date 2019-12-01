@@ -10,17 +10,18 @@ class Download(object):
         self.size = size
         self.pieces = {}
         self.count_finish = 0
+        self.actual_copy = 0
         self.potential = []
         self.is_fail = False
         #TODO pause dwn
-        self.paused = False
+        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution', 'failed']
 
     def partition(self):
         """
         Segmentate the file in pieces
         """
         cantPieces = m.floor(m.log2(self.size))
-        step = m.floor(self.size / cantPieces)  # m.floor(self.size ** 0.5)
+        step = m.floor(self.size/cantPieces)# cantPieces constant m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
         if step == 0:
             step = self.size
         print("STEP", step, "SIZE", self.size)
@@ -63,6 +64,7 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
+        self.actual_copy += self.pieces[id_piece].size
 
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)

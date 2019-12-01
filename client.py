@@ -20,6 +20,7 @@ class Client(object):
         self.comunicator = Comunicator(addr_listen, dht_ip, dht_port)
         self.download = {}
         self.history = None   #TODO history of downloads
+        self.files = None  #TODO
         self.max_dwn = 0
         self.pending = []
         self.fd_dic = {}
@@ -30,9 +31,10 @@ class Client(object):
         try:
             os.mkdir(self.path)
         except:
-            pass
+            print("no open Storage")
 
         self.set_id()
+        self.update_history()
 
         Thread(target=self.start_listen, args=()).start()
 
@@ -77,6 +79,8 @@ class Client(object):
                         if not restart:
                             print("Download of " + dwn.file_name + "FAILED")
                             dwn.is_fail = True
+                            dwn.state = "failed"
+                            self.update_history()
                         else: #si se pudo arreglar => se encargara otro nodo de ese piece
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
@@ -93,6 +97,8 @@ class Client(object):
                             dwn.success_piece(t.piece_id)
                             print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
                             if dwn.is_finish():  # if all pieces done ==> publish file
+                                dwn.state = 'finish'
+                                self.update_history()
                                 self.reconstruct_file(dwn.file_name, len(dwn.pieces))
                         else:
                             print("Incorrect Piece was download")
@@ -102,6 +108,8 @@ class Client(object):
                             if not restart:
                                 print("Download of " + dwn.file_name + "FAILED")
                                 dwn.is_fail = True
+                                dwn.state = "failed"
+                                self.update_history()
                             else:
                                 p = dwn.pieces[t.piece_id]
                                 self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
@@ -111,6 +119,8 @@ class Client(object):
                         if not restart:
                             print("Download of " + dwn.file_name + "FAILED")
                             dwn.is_fail = True
+                            dwn.state = "failed"
+                            self.update_history()
                         else:
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
@@ -181,8 +191,25 @@ class Client(object):
         return size >= 0
 
     def Download(self, file_name):
+        """
+        
+        :param file_name: Name of the file to download
+        :return: 0: is posible download file
+                 1: if the .torrent is needed
+                 2: if the file exist
+                 3: not available file
+        """
         try:
             t = open(self.path + "/" + file_name  + ".torrent" , "r")
+        except:
+            print("You need download " + file_name + ".torrent before download file")
+            return 1
+
+        try:
+            f = open(self.path + "/" + file_name , "r")
+            print("The file " + file_name + " exist" )
+            return 2
+        except:
             location = self.potencial_location(file_name)
             print("location", location)
 
@@ -196,10 +223,10 @@ class Client(object):
                     p = dwn.pieces[i]
                     print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                     self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+                return 0  #the download start
             else:
-                print("File " + file_name + "  not available")
-        except:
-            print("You need download " + file_name + ".torrent before download file")
+                print("The file " + file_name + " is not available")
+                return 3
 
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
@@ -308,7 +335,7 @@ class Client(object):
         t["size"] = dwn.size
         count_pieces = len(dwn.pieces)
         t["count_piece"] = count_pieces
-        print(count_pieces)
+        print(dwn.file_name + ".torrent metadata count pieces", count_pieces)
 
         for i in range(count_pieces):
             p = dwn.pieces[i]
@@ -360,11 +387,48 @@ class Client(object):
         return nodes
 
     def see_files(self):
-        self.comunicator.all_files()
+        return self.comunicator.all_files()
+
+    def update_history(self):
+        d = {}
+        start = 0
+        if histsize < self.max_dwn:
+            start = self.max_dwn - histsize
+        d["range"] = {"first": str(start), "last":str(self.max_dwn)}
+        for k in range(start, self.max_dwn):
+            dwn = self.download[k]
+            data = {"file":dwn.file_name, "size": str(dwn.size), "copy":str(dwn.actual_copy), "state": dwn.state}
+            d[str(k)] = data
+
+        with open(self.path + "/history.json", "w") as wfd:
+            json.dump(d, wfd)
+
 
 
 def main():
     print("client.py")
+
+    d = {"0": {"1":"a", "2":"b", "3": "c"}, "1": {"1":"a", "2":"b", "3": "c"}}
+    print(d)
+    with open("data.json", "w") as write_file:
+        json.dump(d, write_file)
+
+    with open("data.json", "r") as read_file:
+        d_dec = json.load(read_file)
+
+    print(d_dec)
+    print(d == d_dec)
+
+    d = "hello"
+    with open("data.json", "w") as write_file:
+        json.dump(d, write_file)
+
+    with open("data.json", "r") as read_file:
+        d_dec = json.load(read_file)
+
+    print(d_dec)
+    print(d == d_dec)
+
 
 
 

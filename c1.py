@@ -2,8 +2,12 @@ from client import Client
 import os
 import time
 
-
 p = "./Storage/Client"
+try:
+    os.mkdir("./Storage")
+except:
+    pass
+
 
 c1 = Client("localhost", 8001, "127.0.0.1", 8888, p + "1", ("127.0.0.1", 9001))
 time.sleep(1)
@@ -14,7 +18,7 @@ f2 = "dht.py"
 # c1.copy_file_from_directory("./tesis.pdf", "tesis.pdf")
 # c1.copy_file_from_directory("./dht.py", "dht.py")
 # c1.copy_file_from_directory("./hello", "hello")
-# time.sleep(4)
+time.sleep(3)
 c1.download_torrent("dht.py")
 c1.Download("dht.py")
 time.sleep(1)
