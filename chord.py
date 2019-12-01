@@ -7,6 +7,7 @@ import hashlib
 import time
 import sys
 
+from tools import hash
 from settings import *
 
 class ChordThread(threading.Thread):
@@ -41,10 +42,10 @@ class Node:
         self.port = local_address[1]
 
         self.id = f"{self.ip}:{self.port}"
-        self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder= sys.byteorder) % SIZE
+        self.key = hash(self.id)
+        # self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder= sys.byteorder) % SIZE
         self._info = {'id': self.id, 'key': self.key}
 
-        # self.suc_lock = threading.Lock()
         self.pred_lock = threading.Lock()
         self.finger_lock = threading.Lock()
         self.data_lock = threading.Lock()
@@ -71,10 +72,10 @@ class Node:
 
     # logging function
     def log(self, info:str):
-        # pass
-        f = open(f"{self.id}.log", "a+")
-        f.write(str(info + "\n"))
-        f.close()
+        pass
+        # f = open(f"{self.id}.log", "a+")
+        # f.write(str(info + "\n"))
+        # f.close()
 
     @property
     def info(self):
@@ -132,7 +133,7 @@ class Node:
 
     def get(self, key):
         info = self.find_successor(key)
-
+        print(f" node {info['id']} has key {key}")
         if info['id'] == self.id:
             if self.isinrange(key,self.predecessor['key'],self.key):
                 return self._data.get(key)
@@ -194,26 +195,17 @@ class Node:
             return False
 
     def find_successor(self, key):
-
-        # global debug
-        # if debug:
-        #     print('entering find_successor')
         # if the key belongs to this node
         if self._predecessor and \
         self.isinrange(key,self._predecessor['key'],self.key):
             self.log("find_successor")
             return self.info
         pred = self.find_predecessor(key)
-        # if debug:
-        #     print('find_predecessor passed')
         with self.get_remote(pred['id']) as pred_remote:
             self.log("find_successor")
             return pred_remote.get_successor()
 
     def find_predecessor(self, key):
-        # global debug
-        # if debug:
-        #     print('entering find_predecessor')
         node = self.info
         successor = self.finger_table[0]
 
@@ -238,9 +230,7 @@ class Node:
             if node:
                 if self.isinrange(node['key'], self.key, key - 1) and \
                 self.ping(node['id']):
-                    self.log("closest_preceding_finger other " +  str(node['key']))
                     return node
-        self.log("closest_preceding_finger me")
         return self.info
 
     @repeat_and_sleep(2)
@@ -360,83 +350,7 @@ class Node:
         self.data_lock.release()
 
 
-# a = Node(('127.0.0.1',8000)) # 0
-# b = Node(('127.0.0.1',8001),('127.0.0.1',8000)) # 3
-# c = Node(('127.0.0.1',8002),('127.0.0.1',8000)) # 1
-# # d = Node(('127.0.0.1',8004),('127.0.0.1',8000))
-# e = Node(('127.0.0.1',8009),('127.0.0.1',8000)) # 5
-#
-# a.set(2,4)
-# a.set(4,16)
-# a.set(6,36)
-# a.set(7,49)
-#
-# lst = [a,c,b,e]
-#
-# while 1:
-#     for n in lst:
-#         print("_________________________________________________")
-#         print(f"Node {n.info['key']}")
-#         print("_________________________________________________")
-#         print("data: ",n._data)
-#         print("replica: ",n._replica)
-#         time.sleep(5)
-
-# while 1:
-#     print ("___________________")
-#     with a.get_remote('127.0.0.1:8000') as r:
-#         print(r.info, r.finger_table[0], " | " ,  r.predecessor)
-#     print ("___________________")
-#     with a.get_remote('127.0.0.1:8001') as r:
-#         print(r.info, r.finger_table[0],  " | " , r.predecessor)
-#     print ("___________________")
-#     with a.get_remote('127.0.0.1:8002') as r:
-#         print(r.info, r.finger_table[0],  " | " , r.predecessor)
-#     print ("___________________")
-#     with a.get_remote('127.0.0.1:8004') as r:
-#         print(r.info, r.finger_table[0], " | ", r.predecessor)
-#     print("___________________")
-#     # a.update_successors()
-#     # b.update_successors()
-#     # a.stabilize(),.
-#     # b.stabilize()
-#     # a.fix_fingers()
-#     # b.fix_fingers()
-#     time.sleep(5)
-
-# if __name__ == "__main__":
-#     import sys
-#     if len(sys.argv) == 2:
-#         port = int(sys.argv[1])
-#         a = Node(('127.0.0.1',port))
-#         while 1:
-#             print ("___________________")
-#             with a.get_remote(f'127.0.0.1:{port}') as r:
-#                 # print(r.info, r.finger_table[0], " | " ,  r.predecessor)
-#                 print(r.info)
-#                 for i in range(len(r.finger_table)):
-#                     print(((r.info['key'] + 2**i)% SIZE),' : ', r.finger_table[i])
-#             print ("___________________")
-#             time.sleep(5)
-#
-#     else:
-#         port_root = int(sys.argv[1])
-#         port = int(sys.argv[2])
-#         a = Node(('127.0.0.1', port),('127.0.0.1', port_root))
-#         while 1:
-#             print("___________________")
-#             with a.get_remote(f'127.0.0.1:{port}') as r:
-#                 # print(r.info, r.finger_table[0], " | ", r.predecessor)
-#                 print(r.info)
-#                 for i in range(len(r.finger_table)):
-#                     print(((r.info['key'] + 2**i) % SIZE), ' : ', r.finger_table[i])
-#             print("___________________")
-#             time.sleep(5)
-
-
 if __name__ == "__main__":
-    import sys
-    debug = False
     if len(sys.argv) == 2:
         port = int(sys.argv[1])
         a = Node(('127.0.0.1',port))
@@ -467,7 +381,6 @@ if __name__ == "__main__":
         while 1:
             count += 1
             if port == 8004 and count == 10:
-                debug = True
                 a.set(2, 4)
                 print('2 inserted')
                 a.set(4, 16)
@@ -480,7 +393,6 @@ if __name__ == "__main__":
                 print('12 inserted')
                 a.set(14, 196)
                 print('14 inserted')
-                debug = False
             # if count == 20 or count == 30:
             #     suc = a.find_successor(4)
             #     print('FIND_SUCCESSOR(4) =====>   ',suc)
@@ -514,7 +426,6 @@ if __name__ == "__main__":
 #
 #
 # time.sleep(20)
-# debug = True
 # e.set(2, 4)
 # print('2 inserted')
 # e.set(4, 16)

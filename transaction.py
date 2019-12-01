@@ -19,7 +19,8 @@ class Download(object):
         """
         Segmentate the file in pieces
         """
-        step = m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
+        cantPieces = m.floor(m.log2(self.size))
+        step = m.floor(self.size / cantPieces)  # m.floor(self.size ** 0.5)
         if step == 0:
             step = self.size
         print("STEP", step, "SIZE", self.size)

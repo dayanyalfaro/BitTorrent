@@ -184,6 +184,7 @@ class Client(object):
         try:
             t = open(self.path + "/" + file_name  + ".torrent" , "r")
             location = self.potencial_location(file_name)
+            print("location", location)
 
             if len(location) > 0:
                 dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
@@ -256,6 +257,7 @@ class Client(object):
                 self.comunicator.update_idclient(self.c_id, self.addr_listen)
                 f.close()
             except:
+                print("no open file")
                 self.c_id = self.comunicator.get_id()
                 try:
                     r = self.path + "/id"
@@ -363,7 +365,6 @@ class Client(object):
 
 def main():
     print("client.py")
-    f
 
 
 

@@ -2,16 +2,18 @@ import Pyro4
 import hashlib
 import sys
 
+from settings import SIZE
+
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 idclient = "#idclient"
 sizefile = "#sizef"
-SIZE = 20 # DHT size
+ # DHT size
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 10
+bufsize = 1024*1024
 totalP = 20  # the max number of pieces
 
 
@@ -27,10 +29,10 @@ def start_service(obj, ip, port):
     )
 
 def hash(string):
-    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (1 << SIZE)
+    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def hashb(data):
-    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder ) % (1 << SIZE)
+    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def main():
     print("tools")

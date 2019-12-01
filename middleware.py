@@ -37,8 +37,12 @@ class Comunicator(object):
         if v == None:
             dht.set(hash(file_name), [c_id])
             all = dht.get(hash(allfiles))
+            print("allfiles1", all)
             all.append(file_name)
+            print("allfiles2", all)
             dht.set(hash(allfiles), all)
+            all = dht.get(hash(allfiles))
+            print("allfiles3", all)
             k = sizefile + "|" + file_name
             dht.set(hash(k), size)
             dht.set(hash(file_name + ".torrent"), torrent) #first time to publish this .torrent
