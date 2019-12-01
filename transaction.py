@@ -10,10 +10,11 @@ class Download(object):
         self.size = size
         self.pieces = {}
         self.count_finish = 0
+        self.actual_copy = 0
         self.potential = []
         self.is_fail = False
         #TODO pause dwn
-        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution']
+        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution', 'failed']
 
     def partition(self):
         """
@@ -63,6 +64,7 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
+        self.actual_copy += self.pieces[id_piece].size
 
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)

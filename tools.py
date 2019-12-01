@@ -13,6 +13,7 @@ SIZE = 20 # DHT size
 backlog = 50
 bufsize = 1024*1024
 totalP = 20  # the max number of pieces
+histsize = 2
 
 
 def get_remote_node(ip, port):
