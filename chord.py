@@ -7,8 +7,11 @@ import hashlib
 import time
 import sys
 
-from tools import hash
-from settings import *
+from untitled.BitTorrent_app.Logic.settings import *
+# from untitled.BitTorrent_app.Logic.tools import hash
+
+def hash(string):
+    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 class ChordThread(threading.Thread):
     def __init__(self, obj, method, args):
@@ -136,9 +139,15 @@ class Node:
         print(f" node {info['id']} has key {key}")
         if info['id'] == self.id:
             if self.isinrange(key,self.predecessor['key'],self.key):
-                return self._data.get(key)
+                self.data_lock.acquire()              
+                d = self._data.get(key)
+                self.data_lock.release()
+                return d
             else:
-                return self._replica.get(key)
+                self.replica_lock.acquire()
+                d = self._replica.get(key)
+                self.replica_lock.release()
+                return d
 
         with self.get_remote(info['id']) as remote:
             if self.isinrange(key, remote.predecessor['key'], remote.info['key']):

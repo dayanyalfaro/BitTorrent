@@ -3,7 +3,7 @@ import os
 from transaction import *
 import time
 
-p = "./Storage/Client"
+p = "./Storage"
 try:
     os.mkdir("./Storage")
 except:
