@@ -1,0 +1,61 @@
+{% extends 'base.html' %}
+{% load staticfiles %}
+
+{% block menu-bar %}
+    <div class="collapse navbar-collapse navbar-right">
+        <ul class="nav navbar-nav">
+            <li><a href="/home">Home</a></li>
+            <li><a href="/files">Files</a></li>
+            <li class="active"><a href="/dwns">Downloads</a></li>
+            <li><a href="/uplds">Uploads</a></li>
+        </ul>
+    </div>
+{% endblock %}
+
+{% block body %}
+    <div class=slider>
+        <div class="container">
+            {% for download in DOWNLOADS %}
+                <div class="progress-wrap col-md-6">
+                    <div class="progress">
+                        <div class="progress-bar color1" role="progressbar" aria-valuenow="0" aria-valuemin="0"
+                             aria-valuemax="100" id="{{ download }}" style="width: 50%">
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+{% endblock %}
+
+
+{% block js %}
+    <script type="text/javascript">
+
+        $(document).ready(function () {
+            const interval = setInterval(() => {
+                $.ajax({
+                    url: '/updatepb',
+                    success: function (data) {
+                        for (id of data.keys) {
+
+                            bar = document.getElementById(id)
+                            progress = (data.history[id].copy / data.history[id].size) * 100
+                            bar.style.width = progress + '%'
+                            bar.innerText = progress + '%'
+                            if (data.history[id].status == 'failed' |
+                                data.history[id].status == 'finish'
+                                |
+                                data.history[id].status == 'paused'
+                            ) {
+                                clearInterval(interval)
+                            }
+                        }
+                    }
+                });
+            }, 2000)
+        });
+
+    </script>
+{% endblock %}

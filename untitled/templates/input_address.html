@@ -1,0 +1,21 @@
+{% extends 'base.html' %}
+
+{% block body %}
+    <div class=slider>
+    <div class="container">
+        <h2>Insert Address</h2>
+        {% if form.errors %}
+            <p style="color: red;">Por favor corrige lo siguiente:
+            </p>
+
+        {% endif %}
+        <form action="" method="post">{% csrf_token %}
+            <table>
+                {{ form.as_table }}
+            </table>
+            <button type="submit" class="btn btn-primary btn-lg">Submit</button>
+            {#                <input type="submit" value="Submit">#}
+        </form>
+    </div>
+{% endblock %}
+

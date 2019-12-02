@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block menu-bar %}
+    <div class="collapse navbar-collapse navbar-right">
+        <ul class="nav navbar-nav">
+            <li><a href="/home">Home</a></li>
+            <li><a href="/files">Files</a></li>
+            <li><a href="/dwns">Downloads</a></li>
+            <li class="active"><a href="/uplds">Uploads</a></li>
+        </ul>
+    </div>v
+{% endblock %}
+
+{% block body %}
+    <div class=slider>
+        <div class="container">
+            {#            <form method="post" enctype="multipart/form-data">#}
+            {#                {% csrf_token %}#}
+            {#                <input type="file" name="myfile">#}
+            {#                <button type="submit">Upload</button>#}
+            {#            </form>#}
+            <form method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                {{ form.as_p }}
+                <button type="submit">Upload</button>
+            </form>
+        </div>
+    </div>
+{% endblock %}
