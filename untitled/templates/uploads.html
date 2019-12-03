@@ -23,8 +23,13 @@
                     </form>
                 </div>
             </div>
-            <div class="row" style="margin-bottom: 20px ; margin-left: 2px" >
-                <a class="btn btn-primary col"  href="{% url 'upload_file' %}"> Upload File</a>
+            <div class="row" style="margin-bottom: 20px ; margin-left: 2px">
+                <form method="post" enctype="multipart/form-data">
+                    {% csrf_token %}
+                    <p><label for="id_uploaded_file">Select file to upload:</label> <input type="file" name="uploaded_file" required id="id_uploaded_file"></p>
+                    <button type="submit">Upload File</button>
+                </form>
+                {#                <a class="btn btn-primary col"  href="{% url 'upload_file' %}"> Upload File</a>#}
             </div>
 
         </div>
@@ -49,7 +54,7 @@
                             <div class="panel-body">
                                 <div class="media accordion-inner">
                                     <div class="pull-left">
-                                        <a class="fa fa-minus-circle" href="#"> Cancel Upload</a>
+                                        <a class="fa fa-eye" href= {% static "/Storage/" %}{{ file }}> Open</a>
                                     </div>
                                 </div>
                             </div>
@@ -60,17 +65,17 @@
                     </div>
                 </div>
             </div>
+        <ul class="pagination pagination-lg">
+            <li><a href="#"><i class="fa fa-long-arrow-left"></i></a></li>
+            <li class="active"><a href="#">1</a></li>
+            <li><a href="#">2</a></li>
+            <li><a href="#">3</a></li>
+            <li><a href="#">4</a></li>
+            <li><a href="#">5</a></li>
+            <li><a href="#"><i class="fa fa-long-arrow-right"></i></a></li>
+        </ul>
         </div>
 
 
-    <ul class="pagination pagination-lg">
-        <li><a href="#"><i class="fa fa-long-arrow-left"></i></a></li>
-        <li class="active"><a href="#">1</a></li>
-        <li><a href="#">2</a></li>
-        <li><a href="#">3</a></li>
-        <li><a href="#">4</a></li>
-        <li><a href="#">5</a></li>
-        <li><a href="#"><i class="fa fa-long-arrow-right"></i></a></li>
-    </ul>
-</div>
+    </div>
 {% endblock %}

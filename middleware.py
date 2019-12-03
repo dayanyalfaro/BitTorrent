@@ -1,6 +1,6 @@
 import Pyro4
 import os
-from BitTorrent_app.Logic.tools import *
+from tools import *
 
 
 class Comunicator(object):
@@ -56,6 +56,7 @@ class Comunicator(object):
                 dht.set(hash(file_name), v)
         print("client ", c_id, "published file ", file_name)
 
+
     def get_files(self, step):
         """
             List all files availables
@@ -73,6 +74,7 @@ class Comunicator(object):
             files += self.get_files(i)
 
         return files
+
 
     def get_len_file(self, file_name):
         dht = get_remote_node(self.dht_ip, self.dht_port)
