@@ -3,6 +3,8 @@ from chord import *
 
 maxclient = "#maxclient"
 allfiles = "#allfiles"
+filestep = "#step"    #files in a particular step
+maxstep = "#maxstep"  #max step created
 
 @Pyro4.expose
 class DHT(object):
@@ -45,8 +47,10 @@ class DHT(object):
 
 def main():
     d = DHT()
-    d.set(hash(maxclient),0)
-    d.set(hash(allfiles),[])
+    d.set(get_hash(maxclient),0)
+    d.set(get_hash(allfiles),[])
+    d.set(get_hash(maxstep),0)
+    d.set(get_hash(filestep + '|0'),[])
     while 1:
         time.sleep(10)
         print('******************************************************************************************')

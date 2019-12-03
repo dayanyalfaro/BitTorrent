@@ -10,7 +10,7 @@ import sys
 from untitled.BitTorrent_app.Logic.settings import *
 # from untitled.BitTorrent_app.Logic.tools import hash
 
-def hash(string):
+def get_hash(string):
     return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 class ChordThread(threading.Thread):
@@ -45,7 +45,7 @@ class Node:
         self.port = local_address[1]
 
         self.id = f"{self.ip}:{self.port}"
-        self.key = hash(self.id)
+        self.key = get_hash(self.id)
         # self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder= sys.byteorder) % SIZE
         self._info = {'id': self.id, 'key': self.key}
 
