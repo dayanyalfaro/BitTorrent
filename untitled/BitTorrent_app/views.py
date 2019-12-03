@@ -64,35 +64,40 @@ def downloads(request):
 
 def uploads(request):
     global client
+    context = {}
+    context['error'] = ''
     files = client.files
     query = ""
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
-            fd = form.cleaned_data['uploaded_file']
-            name = form.cleaned_data['uploaded_file']._name
-            size = form.cleaned_data['uploaded_file'].size
-            # form.save()
-            def copy():
-                try:
-                    os.mkdir(staticfil + "/files");
-                except: pass
-                wf = open(staticfil + "/files/" + name, "wb")
-                while 1:
-                    data = fd.read(1024*1024)
-                    if len(data) == 0:
-                        break
-                    wf.write(data)
-                wf.close()
+            if form.cleaned_data['uploaded_file']._name.find('|') != -1:
+                context['error'] = 'File name can not contain |'
+            else:
+                fd = form.cleaned_data['uploaded_file']
+                name = form.cleaned_data['uploaded_file']._name
+                size = form.cleaned_data['uploaded_file'].size
+                # form.save()
+                def copy():
+                    try:
+                        os.mkdir(staticfil + "/files");
+                    except: pass
+                    wf = open(staticfil + "/files/" + name, "wb")
+                    while 1:
+                        data = fd.read(1024*1024)
+                        if len(data) == 0:
+                            break
+                        wf.write(data)
+                    wf.close()
 
-                client.copy_file_from_directory(staticfil + "/files/" + name, name)
-            copy()
+                    client.copy_file_from_directory(staticfil + "/files/" + name, name)
+                copy()
 
     else:
         query = request.GET.get('search_box', "")
         files = [f for f in files if f.lower().find(query.lower()) != -1]
 
-    context = {}
+
     form = UploadFileForm()
     context['FILES'] = files
     context['form'] = form

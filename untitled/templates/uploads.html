@@ -34,6 +34,9 @@
                     </p>
                     <button type="submit">Upload File</button>
                 </form>
+                {% if error %}
+                    <p> {{ error }} </p>
+                {% endif %}
                 {#                <a class="btn btn-primary col"  href="{% url 'upload_file' %}"> Upload File</a>#}
             </div>
 
