@@ -11,7 +11,7 @@ idclient = "#idclient"
 sizefile = "#sizef"
 filestep = "#step"    #files in a particular step
 maxstep = "#maxstep"  #max step created
-lenstep = 2     #cant files in each step
+lenstep = 50     #cant files in each step
  # DHT size
 
 # SPECIAL CONSTANTS
@@ -32,7 +32,7 @@ def start_service(obj, ip, port):
         {obj: "%s:%s" % (ip, str(port))}, host=ip, port=port, ns=False
     )
 
-def hash(string):
+def get_hash(string):
     return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def hashb(data):

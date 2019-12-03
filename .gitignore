@@ -111,6 +111,7 @@ venv.bak/
 *.pdf
 *.avi
 Storage/
+files/
 *.png
 .idea/
 *.avi

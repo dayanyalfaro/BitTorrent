@@ -57,7 +57,8 @@ def downloads(request):
     context = {}
     dwns = []
     if client:
-        dwns = client.download.keys()
+        for key in client.download.keys():
+            dwns.append({'id':key, 'name': client.download[key].file_name})
     context['DOWNLOADS'] = dwns
     return render(request, '../templates/downloads.html', context)
 
