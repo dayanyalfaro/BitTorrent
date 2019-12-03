@@ -313,10 +313,10 @@ class Client(object):
             self.publish(file_name, size, metadata)  #publish a file location
             # except:
             #     print("failed open file in copy from a directory")
-
-        # self.pub.append(Thread(target=copy, args=()))
-        # self.pub[-1].start()
-        copy()
+            os.remove(p_source)
+        self.pub.append(Thread(target=copy, args=()))
+        self.pub[-1].start()
+        # copy()
 
     def download_torrent(self, file_name):
         t_name = file_name + ".torrent"
