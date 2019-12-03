@@ -6,12 +6,10 @@ from django.shortcuts import render
 from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
-from BitTorrent_app.forms import AddressForm
+from BitTorrent_app.forms import AddressForm, UploadFileForm
 from BitTorrent_app.Logic.client import Client
-from BitTorrent_app.Logic.tools import histsize, Pagin
-from django.db import models
+from BitTorrent_app.Logic.tools import histsize
 from untitled.settings import STATICFILES_DIRS
-from django import forms
 
 max_client_connect = 0
 clients_connect = []
@@ -20,18 +18,6 @@ staticfil = STATICFILES_DIRS[0]
 # client = Client('127.0.0.1', 8888, staticfil + "/Storage", ("127.0.0.1", 9001))
 client = None
 
-print(staticfil)
-
-class UploadedFile(models.Model):
-    global client
-    global path
-    rand = random.randint(0,200)
-    uploaded_file = models.FileField(upload_to=f'./static/files')
-
-class UploadFileForm(forms.ModelForm):
-    class Meta:
-        model = UploadedFile
-        fields = ['uploaded_file',]
 
 def home(request):
     return render(request, '../templates/home.html')
