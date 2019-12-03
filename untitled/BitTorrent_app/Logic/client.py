@@ -96,8 +96,8 @@ class Client(object):
                             print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
                             if dwn.is_finish():  # if all pieces done ==> publish file
                                 dwn.state = 'finish'
-                                self.update_history()
                                 self.reconstruct_file(dwn.file_name, len(dwn.pieces))
+                            self.update_history()
                         else:
                             print("Incorrect Piece was download")
                             os.remove(self.path + "/" + dwn.file_name + str(t.piece_id))

@@ -11,4 +11,6 @@ urlpatterns = [
     path('dt/<str:filename>/', views.download_torrent,name = 'download_torrent'),
     path('df/<str:filename>/', views.download_file,name = 'download_file'),
 
+
+
 ]

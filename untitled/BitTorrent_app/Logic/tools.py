@@ -17,9 +17,9 @@ lenstep = 50     #cant files in each step
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1024*1024
+bufsize = 1024
 totalP = 20  # the max number of pieces
-histsize = 2
+histsize = 10
 maxpage = 5
 
 class Pagin(object):
@@ -43,6 +43,7 @@ class Pagin(object):
                     self.pages[maxpage] = files[page*step:]
                 else:
                     self.pages[page + 1] = files[page*step: page*step + step]
+        return self.pages[self.actual_page]
 
 
     def inc_actual_page(self):

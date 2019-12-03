@@ -8,17 +8,17 @@ from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from BitTorrent_app.forms import AddressForm
 from BitTorrent_app.Logic.client import Client
+from BitTorrent_app.Logic.tools import histsize, Pagin
 from django.db import models
 from untitled.settings import STATICFILES_DIRS
 from django import forms
-import random
 
-client = None
-rand = None
 max_client_connect = 0
 clients_connect = []
 
 staticfil = STATICFILES_DIRS[0]
+# client = Client('127.0.0.1', 8888, staticfil + "/Storage", ("127.0.0.1", 9001))
+client = None
 
 print(staticfil)
 
@@ -37,48 +37,81 @@ def home(request):
     return render(request, '../templates/home.html')
 
 
+#op 0 decrease
+# op 1 increase
 def all_files(request):
     global client
     context = {}
     files = []
+    names = []
+    query = ""
     if client:
         names = client.see_files()
+
+    if request.method == 'GET':
+        query = request.GET.get('search_box', "")
+        names = [f for f in names if f.find(query) != -1]
+
     for file in names:
         d = dict()
         d['name'] = file
         d['torrent'] = client.torrent_exists(file)
         files.append(d)
     context['FILES'] = files
+    context['query'] = query
     return render(request, '../templates/all_files.html', context)
 
 
 def downloads(request):
     global client
+    start = 0
+    if histsize < client.max_dwn:
+        start = client.max_dwn - histsize
     context = {}
     dwns = []
     if client:
-        for key in client.download.keys():
-            dwns.append({'id':key, 'name': client.download[key].file_name})
+        for key in range(start, client.max_dwn):
+            dwns.append({'id':key, 'name': client.download[key].file_name, 'width': round(client.download[key].actual_copy/client.download[key].size) * 100})
     context['DOWNLOADS'] = dwns
     return render(request, '../templates/downloads.html', context)
 
 
 def uploads(request):
     global client
+    files = client.files
+    query = ""
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
+            fd = form.cleaned_data['uploaded_file']
             name = form.cleaned_data['uploaded_file']._name
             size = form.cleaned_data['uploaded_file'].size
-            form.save()
-            client.copy_file_from_directory(staticfil + "/files/" + name, name)
+            # form.save()
+            def copy():
+                try:
+                    os.mkdir(staticfil + "/files");
+                except: pass
+                wf = open(staticfil + "/files/" + name, "wb")
+                while 1:
+                    data = fd.read(1024*1024)
+                    if len(data) == 0:
+                        break
+                    wf.write(data)
+                wf.close()
+
+                client.copy_file_from_directory(staticfil + "/files/" + name, name)
+            copy()
+
+    else:
+        query = request.GET.get('search_box', "")
+        files = [f for f in files if f.lower().find(query.lower()) != -1]
+
     context = {}
-    files = client.files
     form = UploadFileForm()
     context['FILES'] = files
     context['form'] = form
+    context['query'] = query
     return render(request, '../templates/uploads.html', context)
-
 
 def download_file(request, filename):
     if client:
@@ -97,8 +130,16 @@ def cancel_upload(request):
 
 
 def update_progress_bar(request):
-    with open(client.path + "/history.json", "r") as fd:
-        history = json.load(fd)
+    global client
+    history = {}
+    start = 0
+    if histsize < client.max_dwn:
+        start = client.max_dwn - histsize
+    history["range"] = {"first": str(start), "last": str(client.max_dwn)}
+    for k in range(start, client.max_dwn):
+        dwn = client.download[k]
+        data = {"file": dwn.file_name, "size": dwn.size, "copy": dwn.actual_copy, "state": dwn.state}
+        history[str(k)] = data
 
     data = {'history': history}
     if request.is_ajax():
@@ -109,7 +150,7 @@ def get_address(request):
     global client
     global max_client_connect
     global rand
-    if request.method == "POST":
+    if (client == None) and request.method == "POST":
         form = AddressForm(request.POST)
         if form.is_valid():
             path = staticfil + "/Storage"
@@ -122,8 +163,10 @@ def get_address(request):
             client = Client('127.0.0.1', 8888, path, (data['ip'], data['port']))
             max_client_connect += 1
             return HttpResponseRedirect('/home/')
-    else:
+    elif client == None:
         form = AddressForm()
         return render(request, 'input_address.html', {'form': form})
+    else:
+        return HttpResponseRedirect('/home/')
 
 
