@@ -9,6 +9,16 @@ class Comunicator(object):
         self.dht_port = dht_port
         self.addr_listen = addr_listen
 
+    def get_alternative_nodes(self):
+        dht_nodes = []
+        try:
+            remote = get_remote_node(self.dht_ip,self.dht_port)
+            successors = remote.successors
+            dht_nodes = [ suc['id'].split(':') for suc in successors]
+        except:
+            pass
+        return dht_nodes
+
     def update_dht(self, d_ip, d_port):
         """
             update the DHT address

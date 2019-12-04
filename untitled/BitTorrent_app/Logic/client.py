@@ -13,12 +13,15 @@ from BitTorrent_app.Logic.transaction import Transaction, Download
 def verify_dht_conexion(func):
     def wrapper(self,*args,**kwargs):
         try:
-            get_remote_node(self.comunicator.dht_ip,self.comunicator.dht_port)
+            with get_remote_node(self.comunicator.dht_ip,self.comunicator.dht_port) as remote:
+                remote.ping()
         except:
-            self.dht_nodes.remove((self.comunicator.dht_ip,self.comunicator.dht_port))
+            actual_node = [self.comunicator.dht_ip,str(self.comunicator.dht_port)]
+            if actual_node in self.dht_nodes:
+                self.dht_nodes.remove(actual_node)
             if self.dht_nodes:
                 self.comunicator.update_dht(self.dht_nodes[0][0],self.dht_nodes[0][1])
-        func(self,*args,**kwargs)
+        return func(self,*args,**kwargs)
     return wrapper
 
 class Client(object):
@@ -34,8 +37,8 @@ class Client(object):
         self.pub = []
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.addr_listen = addr_listen
-        with get_remote_node(dht_ip,dht_port) as remote:
-            self.dht_nodes = remote.successors
+        self.dht_nodes = self.comunicator.get_alternative_nodes()
+
         try:
             os.mkdir(self.path)
         except:
@@ -283,6 +286,7 @@ class Client(object):
         self.fd_dic[fi] = t
         self.fd_dic[fo] = t
 
+    @verify_dht_conexion
     def set_id(self):  # ok
         if self.c_id == None:
             try:
@@ -358,6 +362,7 @@ class Client(object):
                 print("failed when intent open file in Torrent metadata")
         return t
 
+    @verify_dht_conexion
     def get_torrent(self, torrent_name):
         t = self.comunicator.get_torrent(torrent_name)
         return t
@@ -372,6 +377,7 @@ class Client(object):
         t = torrent_parser.parse_torrent_file(path)
         return t
 
+    @verify_dht_conexion
     def get_len_file(self, file_name):
         return self.comunicator.get_len_file(file_name)
 
@@ -387,14 +393,17 @@ class Client(object):
         except:
             return -1
 
+    @verify_dht_conexion
     def publish(self, file_name, size, torrent):
         self.files.append(file_name)
         self.comunicator.publish(file_name, self.c_id, size, torrent)
 
+    @verify_dht_conexion
     def get_file_location(self, file):
         nodes = self.comunicator.get_location(file)
         return nodes
 
+    @verify_dht_conexion
     def see_files(self):
         all = self.comunicator.all_files()
         all = [f for f in all if f not in self.files]

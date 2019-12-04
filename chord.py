@@ -389,22 +389,6 @@ if __name__ == "__main__":
         count = 0
         while 1:
             count += 1
-            # if port == 8004 and count == 10:
-            #     a.set(2, 4)
-            #     print('2 inserted')
-            #     a.set(4, 16)
-            #     print('4 inserted')
-            #     a.set(6, 36)
-            #     print('6 inserted')
-            #     a.set(8, 64)
-            #     print('8 inserted')
-            #     a.set(12, 144)
-            #     print('12 inserted')
-            #     a.set(14, 196)
-            #     print('14 inserted')
-            # if count == 20 or count == 30:
-            #     suc = a.find_successor(4)
-            #     print('FIND_SUCCESSOR(4) =====>   ',suc)
             print("_________________________________________________")
             print("_________________________________________________")
             print(f"Node {a.info['key']}", '     COUNT: ',count)
@@ -425,26 +409,4 @@ if __name__ == "__main__":
             time.sleep(5)
 
 
-
-# a = Node(('127.0.0.1',8000)) # 0
-# e = Node(('127.0.0.1',8009),('127.0.0.1',8000)) # 13
-# d = Node(('127.0.0.1',8001),('127.0.0.1',8000)) # 11
-# b = Node(('127.0.0.1',8003),('127.0.0.1',8000)) # 3
-# c = Node(('127.0.0.1',8006),('127.0.0.1',8000)) # 7
-# e = Node(('127.0.0.1',8004),('127.0.0.1',8000)) # 15
-#
-#
-# time.sleep(20)
-# e.set(2, 4)
-# print('2 inserted')
-# e.set(4, 16)
-# print('4 inserted')
-# e.set(6, 36)
-# print('6 inserted')
-# e.set(8, 64)
-# print('8 inserted')
-# e.set(12, 144)
-# print('12 inserted')
-# e.set(14, 196)
-# print('14 inserted')
 

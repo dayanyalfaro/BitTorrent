@@ -1,10 +1,18 @@
 import Pyro4
 from chord import *
+import sys
+import hashlib
 
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 filestep = "#step"    #files in a particular step
 maxstep = "#maxstep"  #max step created
+
+# def get_remote(ip_port):
+#         uri = f"PYRO:{ip_port}@{ip_port}"
+#         remote_node = Pyro4.Proxy(uri)
+#         return remote_node
+
 
 @Pyro4.expose
 class DHT(object):
@@ -44,6 +52,10 @@ class DHT(object):
             l.append(node.data)
         return l
 
+# def set_dht(key,value):
+#     with get_remote('127.0.0.1:8888') as remote:
+#         remote.set(key,value)
+
 
 def main():
     d = DHT()
@@ -55,4 +67,13 @@ def main():
         time.sleep(10)
         print('******************************************************************************************')
         print(d.get_all())
+    # set_dht(get_hash(maxclient),0)
+    # print(get_hash(maxclient))
+    # set_dht(get_hash(allfiles),[])
+    # print(get_hash(allfiles))
+    # set_dht(get_hash(maxstep),0)
+    # print(get_hash(maxstep))
+    # set_dht(get_hash(filestep + '|0'),[])
+    # print(get_hash(filestep + '|0'))
+
 main()
