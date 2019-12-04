@@ -11,20 +11,27 @@ from BitTorrent_app.Logic.client import Client
 from BitTorrent_app.Logic.tools import histsize
 from untitled.settings import STATICFILES_DIRS
 
-max_client_connect = 0
-clients_connect = []
 
 staticfil = STATICFILES_DIRS[0]
 # client = Client('127.0.0.1', 8888, staticfil + "/Storage", ("127.0.0.1", 9001))
 client = None
 
+def logged_only(func):
+    global client
+    def wrapper(*args,**kwargs):
+        if client == None:
+            return HttpResponseRedirect('/')
+        return func(*args,**kwargs)
+    return wrapper
 
+
+
+@logged_only
 def home(request):
     return render(request, '../templates/home.html')
 
 
-#op 0 decrease
-# op 1 increase
+@logged_only
 def all_files(request):
     global client
     context = {}
@@ -47,7 +54,7 @@ def all_files(request):
     context['query'] = query
     return render(request, '../templates/all_files.html', context)
 
-
+@logged_only
 def downloads(request):
     global client
     start = 0
@@ -57,11 +64,16 @@ def downloads(request):
     dwns = []
     if client:
         for key in range(start, client.max_dwn):
-            dwns.append({'id':key, 'name': client.download[key].file_name, 'width': round(client.download[key].actual_copy/client.download[key].size) * 100})
+            dwns.append({
+                'id':key,
+                'name': client.download[key].file_name,
+                'width': round(client.download[key].actual_copy/client.download[key].size) * 100,
+                'state': client.download[key].state
+            })
     context['DOWNLOADS'] = dwns
     return render(request, '../templates/downloads.html', context)
 
-
+@logged_only
 def uploads(request):
     global client
     context = {}
@@ -104,22 +116,20 @@ def uploads(request):
     context['query'] = query
     return render(request, '../templates/uploads.html', context)
 
+@logged_only
 def download_file(request, filename):
     if client:
         client.Download(filename)
     return HttpResponseRedirect('/dwns/')
 
-
+@logged_only
 def download_torrent(request, filename):
     if client:
         client.download_torrent(filename)
     return HttpResponseRedirect('/files/')
 
 
-def cancel_upload(request):
-    pass
-
-
+@logged_only
 def update_progress_bar(request):
     global client
     history = {}
@@ -139,8 +149,6 @@ def update_progress_bar(request):
 
 def get_address(request):
     global client
-    global max_client_connect
-    global rand
     if (client == None) and request.method == "POST":
         form = AddressForm(request.POST)
         if form.is_valid():
@@ -151,8 +159,7 @@ def get_address(request):
             except:
                 pass
             # client = Client('192.168.43.124', 8888, path, (data['ip'], data['port']))
-            client = Client('127.0.0.1', 8888, path, (data['ip'], data['port']))
-            max_client_connect += 1
+            client = Client(data['dht_ip'], data['dht_port'], path, (data['ip'], data['port']))
             return HttpResponseRedirect('/home/')
     elif client == None:
         form = AddressForm()
