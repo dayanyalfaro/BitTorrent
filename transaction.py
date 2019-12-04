@@ -1,6 +1,7 @@
-from tools import *
+from BitTorrent_app.Logic.tools import *
 import math as m
 import random as rd
+
 
 class Download(object):
     def __init__(self, id, file_name, size):
@@ -13,7 +14,7 @@ class Download(object):
         self.potential = []
         self.is_fail = False
         #TODO pause dwn
-        self.state = "ejecution"
+        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution', 'failed']
 
     def partition(self):
         """
@@ -63,7 +64,12 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
-        self.actual_copy += self.pieces[id_piece].size
+        # self.actual_copy += self.pieces[id_piece].size
+
+    def update_copy(self, data):
+        self.actual_copy += data
+
+
 
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)
@@ -110,6 +116,8 @@ class Transaction(object):
                 self.fo.close()
         elif len(self.data) == 0: # TODO: Parche aqui
             self.is_fail = True
+
+
 
 
     def read(self):
