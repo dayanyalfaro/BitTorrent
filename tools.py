@@ -3,6 +3,8 @@ import hashlib
 import sys
 import math as m
 
+from BitTorrent_app.Logic.settings import SIZE
+
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
 allfiles = "#allfiles"
@@ -11,16 +13,14 @@ sizefile = "#sizef"
 filestep = "#step"    #files in a particular step
 maxstep = "#maxstep"  #max step created
 lenstep = 50     #cant files in each step
-LOGSIZE = 64
-SIZE = 1<<LOGSIZE
+ # DHT size
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1
-totalP = 20 # the max number of pieces in download
-histsize = 20
+bufsize = 1024*1024
+totalP = 20  # the max number of pieces
+histsize = 10
 maxpage = 5
-
 
 class Pagin(object):
     def __init__(self):
@@ -43,6 +43,7 @@ class Pagin(object):
                     self.pages[maxpage] = files[page*step:]
                 else:
                     self.pages[page + 1] = files[page*step: page*step + step]
+        return self.pages[self.actual_page]
 
 
     def inc_actual_page(self):
@@ -52,8 +53,6 @@ class Pagin(object):
     def dec_actual_page(self):
         if self.actual_page > 1:
             self.actual_page -= 1
-
-
 
 def get_remote_node(ip, port):
     uri = "PYRO:" + ip + ":" + str(port) + "@" + ip + ":" + str(port)
@@ -70,14 +69,16 @@ def get_hash(string):
     return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def hashb(data):
-    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder )  % (SIZE)
+    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def main():
     print("tools")
-    a = ["0","1","2", "3", "4"]
-    p = Pagin()
-    p.build(a, "1")
-    print(p.pages)
+
+    import math
+    a = math.log2(1024)
+    print(a)
+    print(math.log2(1024*1024))
+    print(math.log2(1024*1024*1024))
 
 
 if __name__ == "__main__":
