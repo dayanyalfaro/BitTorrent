@@ -10,6 +10,16 @@ from BitTorrent_app.Logic.middleware import Comunicator
 from BitTorrent_app.Logic.tools import *
 from BitTorrent_app.Logic.transaction import Transaction, Download
 
+def verify_dht_conexion(func):
+    def wrapper(self,*args,**kwargs):
+        try:
+            get_remote_node(self.comunicator.dht_ip,self.comunicator.dht_port)
+        except:
+            self.dht_nodes.remove((self.comunicator.dht_ip,self.comunicator.dht_port))
+            if self.dht_nodes:
+                self.comunicator.update_dht(self.dht_nodes[0][0],self.dht_nodes[0][1])
+        func(self,*args,**kwargs)
+    return wrapper
 
 class Client(object):
     def __init__(self, dht_ip, dht_port, path, addr_listen):
@@ -24,7 +34,8 @@ class Client(object):
         self.pub = []
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.addr_listen = addr_listen
-
+        with get_remote_node(dht_ip,dht_port) as remote:
+            self.dht_nodes = remote.successors
         try:
             os.mkdir(self.path)
         except:
