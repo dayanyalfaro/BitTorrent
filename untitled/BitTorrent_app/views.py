@@ -84,7 +84,7 @@ def uploads(request):
                     except: pass
                     wf = open(staticfil + "/files/" + name, "wb")
                     while 1:
-                        data = fd.read(1024*1024)
+                        data = fd.read(50*1024*1024)
                         if len(data) == 0:
                             break
                         wf.write(data)

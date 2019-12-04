@@ -64,7 +64,12 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
-        self.actual_copy += self.pieces[id_piece].size
+        # self.actual_copy += self.pieces[id_piece].size
+
+    def update_copy(self, data):
+        self.actual_copy += data
+
+
 
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)

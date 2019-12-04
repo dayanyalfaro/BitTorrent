@@ -111,7 +111,7 @@ class Client(object):
                             else:
                                 p = dwn.pieces[t.piece_id]
                                 self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-                    elif t.is_fail:
+                    if t.is_fail:
                         restart = dwn.restart_piece(t.piece_id)
                         print("Intent restart", restart)
                         if not restart:
@@ -122,6 +122,8 @@ class Client(object):
                         else:
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
+                    else:
+                        dwn.update_copy(len(t.data))
 
 
             self.pending = [i for i in self.pending if not i.finish and not i.is_fail]

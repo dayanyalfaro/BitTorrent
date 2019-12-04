@@ -69,7 +69,7 @@ class Node:
         self.threads['stabilize'] = ChordThread(self, 'stabilize', ())
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
-        self.threads['replicate'] = ChordThread(self, 'replicate', ())
+        # self.threads['replicate'] = ChordThread(self, 'replicate', ())
         for key in self.threads.keys():
             self.threads[key].start()
 
@@ -389,19 +389,19 @@ if __name__ == "__main__":
         count = 0
         while 1:
             count += 1
-            if port == 8004 and count == 10:
-                a.set(2, 4)
-                print('2 inserted')
-                a.set(4, 16)
-                print('4 inserted')
-                a.set(6, 36)
-                print('6 inserted')
-                a.set(8, 64)
-                print('8 inserted')
-                a.set(12, 144)
-                print('12 inserted')
-                a.set(14, 196)
-                print('14 inserted')
+            # if port == 8004 and count == 10:
+            #     a.set(2, 4)
+            #     print('2 inserted')
+            #     a.set(4, 16)
+            #     print('4 inserted')
+            #     a.set(6, 36)
+            #     print('6 inserted')
+            #     a.set(8, 64)
+            #     print('8 inserted')
+            #     a.set(12, 144)
+            #     print('12 inserted')
+            #     a.set(14, 196)
+            #     print('14 inserted')
             # if count == 20 or count == 30:
             #     suc = a.find_successor(4)
             #     print('FIND_SUCCESSOR(4) =====>   ',suc)

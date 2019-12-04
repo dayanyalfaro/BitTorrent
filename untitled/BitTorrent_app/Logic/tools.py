@@ -17,7 +17,7 @@ lenstep = 50     #cant files in each step
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1024
+bufsize = 1024*1024
 totalP = 20  # the max number of pieces
 histsize = 10
 maxpage = 5
