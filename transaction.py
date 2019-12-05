@@ -36,6 +36,7 @@ class Download(object):
             actual_offset += step
         print("ACTUAL OFFSET", actual_offset)
         if actual_offset != self.size:
+            self.pending.append(piece_id)
             self.pieces[piece_id] = Piece(
                 piece_id, actual_offset, self.size - actual_offset
             )
@@ -67,15 +68,16 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
-        self.actual_copy += self.pieces[id_piece].size  # debe devolver el proximo piece a descargar, es neces ario tener una lista de pieces activo
         self.pending.remove(id_piece)
         new_piece_to_dwn = id_piece + totalP
-        #
-        # if new_piece_to_dwn < len(self.pieces):
-        #     return new_piece_to_dwn
-        # else:
-        #     return -1
 
+        if new_piece_to_dwn < len(self.pieces):
+            return self.pieces[new_piece_to_dwn]
+        else:
+            return -1
+
+    def update_copy(self, data):
+        self.actual_copy += data
 
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)

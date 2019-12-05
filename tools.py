@@ -3,6 +3,8 @@ import hashlib
 import sys
 import math as m
 
+
+
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
 allfiles = "#allfiles"
@@ -17,42 +19,9 @@ SIZE = 1<<LOGSIZE
 # SPECIAL CONSTANTS
 backlog = 50
 bufsize = 1
-totalP = 20 # the max number of pieces in download
+totalP = 5 # the max number of pieces in download
 histsize = 20
 maxpage = 5
-
-
-class Pagin(object):
-    def __init__(self):
-        self.files = []
-        self.actual_page = 1
-        self.pages = {}
-
-    def build(self, files, substring = ""):
-        files = [f for f in files if f.find(substring) != -1]
-        count = len(files)
-        step = m.floor(count/maxpage)
-
-        if step == 0:
-            for i in range(1,count + 1):
-                print(files[i-1])
-                self.pages[i] = files[i-1]
-        else:
-            for page in range(0,maxpage ):
-                if page + 1 == maxpage:
-                    self.pages[maxpage] = files[page*step:]
-                else:
-                    self.pages[page + 1] = files[page*step: page*step + step]
-
-
-    def inc_actual_page(self):
-        if self.actual_page < maxpage:
-            self.actual_page += 1
-
-    def dec_actual_page(self):
-        if self.actual_page > 1:
-            self.actual_page -= 1
-
 
 
 def get_remote_node(ip, port):

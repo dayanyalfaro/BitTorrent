@@ -28,8 +28,13 @@ f2 = "dht.py"
 # time.sleep(2)
 c1.Download("foto2.png")
 
-print(c1.download)
 
-input()
-
+time.sleep(3)
+c1.Pause(0)
+#
+time.sleep(2)
+# # print(c1.download)
+# #
+# # input()
+# #
 print(c1.Restore(0))
