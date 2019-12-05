@@ -3,7 +3,7 @@ import hashlib
 import sys
 import math as m
 
-from BitTorrent_app.Logic.settings import SIZE
+
 
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
@@ -13,13 +13,16 @@ sizefile = "#sizef"
 filestep = "#step"    #files in a particular step
 maxstep = "#maxstep"  #max step created
 lenstep = 50     #cant files in each step
+LOGSIZE = 64
+SIZE = 1<<LOGSIZE
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1024
-totalP = 20 # the max number of pieces in download
+bufsize = 1024*1024
+totalP = 5 # the max number of pieces in download
 histsize = 20
 maxpage = 5
+
 
 
 def get_remote_node(ip, port):

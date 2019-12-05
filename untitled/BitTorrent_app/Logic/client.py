@@ -31,14 +31,17 @@ class Client(object):
         self.path = path
         self.comunicator = Comunicator(addr_listen, dht_ip, dht_port)
         self.download = {}
-        self.history = None   #TODO history of downloads
+        self.dwn_in_progress = []
         self.max_dwn = 0
         self.pending = []
         self.fd_dic = {}
+        self.fd_to_close = []
         self.pub = []
         self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.addr_listen = addr_listen
         self.dht_nodes = self.comunicator.get_alternative_nodes()
+
+
 
         try:
             os.mkdir(self.path)
@@ -46,8 +49,9 @@ class Client(object):
             print("no open Storage")
 
         self.set_id()
-        self.update_history()
+
         self.files = self.load_my_files()
+
 
         Thread(target=self.start_listen, args=()).start()
 
@@ -57,13 +61,13 @@ class Client(object):
         s.connect(addr)
         return s
 
-    def start_listen(self):
+    def start_listen(self): #TODO poner lindo  el metodo
         self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         self.sock.bind(self.addr_listen)
         self.sock.listen(backlog)
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
-        fd_to_close = []
+        # fd_to_close = []
         pend_to_attend = [self.sock]
 
         while True:
@@ -73,8 +77,6 @@ class Client(object):
             inputs = inputs[:512]
             outputs = outputs[:512]
 
-            print("input", len(inputs), "output", len(outputs))
-
             rfd, wfd, efd = select(inputs, outputs, [], 2)
 
             for s in rfd:
@@ -83,135 +85,128 @@ class Client(object):
                     pend_to_attend.append(conn)
                 elif s in pend_to_attend:
                     if(self.attend_client(s)):
-                        fd_to_close.append((s,time.clock()))
+                        self.fd_to_close.append((s,time.clock()))
                     pend_to_attend.remove(s)
                 else:
                     t = self.fd_dic[s] #TODO method Do_read_transaction
+                    self.read_transaction(t)
 
-                    if t.type == "dwn":
-                        dwn = self.download[t.dwn_id]
-                        #TODO ???
-                        if dwn.state == "pause" :  #si la transaccion es de una descarga pausada => ya no se ejecuta mas
-                            # t.fi.close() #?????????????
-                            # t.fo.close() #?????????????
-                            self.pending.remove(t)
-                            self.update_history()
-                            continue
-
-                        t.read()
-                        if t.is_fail:
-                            restart = dwn.restart_piece(t.piece_id)
-                            print("Intent restart", restart)
-
-                            if not restart:
-                                print("Download of " + dwn.file_name + "FAILED")
-                                dwn.is_fail = True
-                                dwn.state = "fail"
-                                self.update_history()
-                            else: #si se pudo arreglar => se encargara otro nodo de ese piece
-                                p = dwn.pieces[t.piece_id]
-                                self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
-                    else:
-                        t.read()
 
             for s in wfd:
 
                 t = self.fd_dic[s] #TODO method Do_write_transaction
-
-                if t.type == 'dwn':
-                    dwn = self.download[t.dwn_id]
-                    if dwn.state == "pause":
-                        # t.fi.close()
-                        # t.fo.close()
-                        self.pending.remove(t)
-                        self.update_history()
-                        continue
-
-                    t.write()
-
-                    if t.finish: #TODO delete t.fi, t.fo from fd_dic
-                        check = self.check_piece_with_torrent(t.piece_id,t.data_dwn,t.size, dwn.file_name)#check if the piece is correct
-                        if check:
-                            dwn.success_piece(t.piece_id)
-                            print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
-                            # new_p = t.piece_id + totalP  #download a new piece,
-                            # if new_p < len(dwn.pieces):
-                            #     p = dwn.pieces[new_p]
-                            #     try:
-                            #         self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-                            #     except:
-                            #         print(">FAIL Piece", p.id)
-                            #         restart = dwn.restart_piece(new_p)  #TODO  ver si no se puede restart, xq el file ya no esta disponible
-                            #         p = dwn.pieces[new_p]
-                            #         if not restart:
-                            #             print("Download of " + dwn.file_name + "FAILED")
-                            #             dwn.is_fail = True
-                            #             dwn.state = "fail"
-                            #             self.update_history()
-                            #         else:
-                            #             print(dwn.file_name + " Piece:" + str(p.id) + " -->  ", p.attendant, "Size: ",p.size)
-                            #             self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+                self.write_transaction(t)
 
 
-                            if dwn.is_finish():  # if all pieces done ==> publish file
-                                print(dwn.file_name, " Download finished")
-                                dwn.state = "finish"
-                                self.update_history()
-                                self.reconstruct_file(dwn.file_name, len(dwn.pieces))
-                        else:
-                            print("Incorrect Piece was download")
-                            os.remove(self.path + "/" + dwn.file_name + str(t.piece_id))
-                            restart = dwn.restart_piece(t.piece_id)
+            self.update_pending()
+            self.update_fd_to_close()
+
+
+    def read_transaction(self, t):
+        t.read()
+
+        if t.type == "dwn":
+            dwn = self.download[t.dwn_id]
+
+            if t.is_fail:
+                restart = dwn.restart_piece(t.piece_id)
+                print("Intent restart", restart)
+
+                if not restart:
+                    print("Download of " + dwn.file_name + "FAILED")
+                    self.update_dwn_state(dwn, fail=True)
+
+                else:  # si se pudo arreglar => se encargara otro nodo de ese piece
+                    p = dwn.pieces[t.piece_id]
+                    self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+
+    def write_transaction(self, t):
+        t.write()
+
+        if t.type == 'dwn':
+            dwn = self.download[t.dwn_id]
+            if t.finish:  # TODO delete t.fi, t.fo from fd_dic
+                check = self.check_piece_with_torrent(t.piece_id, t.data_dwn, t.size,
+                                                      dwn.file_name)  # check if the piece is correct
+                if check:
+                    print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
+                    next_p = dwn.success_piece(t.piece_id)
+                    if next_p != -1:
+                        try:  # intent download the next piece
+                            self.dwn_file_from_peer(dwn.file_name, next_p.attendant, next_p.offset, next_p.size, dwn.id,
+                                                    next_p.id)
+                            print(dwn.file_name + " Piece:" + str(next_p.id) + " -->  ", next_p.attendant, "Size: ",
+                                  next_p.size)
+                        except:
+                            print(">FAIL Piece", next_p.id, next_p.attendant)
+                            restart = dwn.restart_piece(
+                                next_p.id)  # TODO  ver si no se puede restart, xq el file ya no esta disponible
 
                             if not restart:
                                 print("Download of " + dwn.file_name + "FAILED")
-                                dwn.is_fail = True
-                                dwn.state = "fail"
-                                self.update_history()
-                            else:
-                                p = dwn.pieces[t.piece_id]
-                                self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-                    if t.is_fail:
-                        restart = dwn.restart_piece(t.piece_id)
-                        print("Intent restart", restart)
-                        if not restart:
-                            print("Download of " + dwn.file_name + "FAILED")
-                            dwn.is_fail = True
-                            dwn.state = "fail"
-                            self.update_history()
-                        else:
-                            p = dwn.pieces[t.piece_id]
-                            self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
-                    else:
-                        dwn.update_copy(len(t.data))
-                else: #type = 'send'
-                    t.write()
-                    if t.finish:
-                        fd_to_close.append((t.fo, time.clock()))
+                                self.update_dwn_state(dwn, fail=True)
 
-            for i in self.pending:
-                i.validate_timeout(15)
-                if((i.type == "dwn") and self.download[i.dwn_id].state == "pause"):
-                    print ("Pause la descarga", i.dwn_id, i.piece_id)
+                            else:
+                                print(dwn.file_name + "Restart done Piece:" + str(next_p.id) + " -->  ",
+                                      next_p.attendant, "Size: ", next_p.size)
+                                self.dwn_file_from_peer(dwn.file_name, next_p.attendant, next_p.offset, next_p.size,
+                                                        dwn.id, next_p.id)
+
+                    if dwn.is_finish():  # if all pieces done ==> publish file
+                        print(dwn.file_name, " Download finished")
+                        self.update_dwn_state(dwn, finish=True)
+                        self.reconstruct_file(dwn.file_name, len(dwn.pieces))
+                else:
+                    print("Incorrect Piece was download")
+                    os.remove(self.path + "/" + dwn.file_name + str(t.piece_id))
+                    restart = dwn.restart_piece(t.piece_id)
+
+                    if not restart:
+                        print("Download of " + dwn.file_name + "FAILED")
+                        self.update_dwn_state(dwn, fail=True)
+                    else:
+                        p = dwn.pieces[t.piece_id]
+                        self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+            if t.is_fail:
+                restart = dwn.restart_piece(t.piece_id)
+                print("Intent restart", restart)
+                if not restart:
+                    print("Download of " + dwn.file_name + "FAILED")
+                    self.update_dwn_state(dwn, fail=True)
+
+                else:
+                    p = dwn.pieces[t.piece_id]
+                    self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+
+        else:  # type = 'send'
+            if t.finish:
+                self.fd_to_close.append((t.fo, time.clock()))
+
+    def update_pending(self):
+        for i in self.pending:
+            i.validate_timeout(15)
+            if i.type == "dwn":
+                if self.download[i.dwn_id].state == "pause":
+                    print("Pause dwn", i.dwn_id, i.piece_id)
+                    i.close()
+                if self.download[i.dwn_id].state == "cancel" :
+                    print("Cancel dwn", i.dwn_id, i.piece_id)
                     i.close()
 
-            self.pending = [i for i in self.pending if not i.finish and not i.is_fail and not (
-                (i.type == "dwn") and self.download[i.dwn_id].state == "pause"
-            )]
+        self.pending = [i for i in self.pending if not i.finish and not i.is_fail and not (
+            (i.type == "dwn") and (self.download[i.dwn_id].state == "pause" or self.download[i.dwn_id].state == "cancel" ))]
 
-            fd_to_close_new = []
-            for x in fd_to_close: #closing open socket
-                fd, fd_time = x
-                if time.clock() - fd_time > 20:
-                    fd.close()
-                    if(self.fd_dic.get(fd, None) != None):
-                        del self.fd_dic[fd]
-                else:
-                    fd_to_close_new.append(x)
-            fd_to_close = fd_to_close_new
-
-            #TODO delete transaction from fd_dic
-
+    def update_fd_to_close(self):
+        fd_to_close_new = []
+        for x in self.fd_to_close:  # closing open socket
+            fd, fd_time = x
+            if time.clock() - fd_time > 20:
+                fd.close()
+                if (self.fd_dic.get(fd, None) != None):
+                    del self.fd_dic[fd]
+            else:
+                fd_to_close_new.append(x)
+        self.fd_to_close = fd_to_close_new
 
     def attend_client(self, s):
         """
@@ -278,40 +273,24 @@ class Client(object):
 
     def Download(self, file_name):
         """
-        
-        :param file_name: 
-        :return: 
-        """
-        self.download_torrent(file_name)
-
-        location = self.potencial_location(file_name)
-        print("location", location)
-
-        if len(location) > 0:
-            dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
-            self.max_dwn += 1
-            self.download[dwn.id] = dwn
-            dwn.build(location)
-
-            for i in range(len(dwn.pieces)):
-                p = dwn.pieces[i]
-                print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
-                self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-            return 0  #the download start
-        else:
-            print("The file " + file_name + " is not available")
-            return 3
-
-    def Download0(self, file_name):
-        """
 
         :param file_name: Name of the file to download
-        :return: 0: is posible download file
+        :return: 0: the download start
                  1: not available file
-                 2:dwn fail
+                 2: dwn fail
+                 3: the dwn is in progress now
+                 4: the file exits
         """
         try:
             self.download_torrent(file_name)
+
+            if self.dwn_in_progress.__contains__(file_name):
+                print(file_name, "download in progress")
+                return 3
+
+            if self.files.__contains__(file_name):
+                print(file_name, "exits")
+                return 4
 
             location = self.potencial_location(file_name)
             print("location", location)
@@ -367,24 +346,33 @@ class Client(object):
         dwn.potential = location
         if len(location):
             print("Start restore")
-            print("Pending", len(self.pending))
             dwn.state = "ejecution"
-            for i in range(len(dwn.pieces)):
-                p = dwn.pieces[i]
-                if not p.finish:  # delete the file of this piece
-                    print(dwn.file_name, " RESTORE PIECE ", i)
 
-                    if not dwn.restart_piece(i, False):
-                        dwn.is_fail = True
-                        print ('Fail dwn in restore')
-                        return -1
-                    p = dwn.pieces[i]
-                    self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
+            end = min(len(dwn.pending), totalP)
+
+            for i in range(end):
+                p_id = dwn.pending[i]
+
+                print(dwn.file_name, " INTENT RESTORE PIECE ", p_id)
+                if not dwn.restart_piece(p_id, False):
+                    dwn.is_fail = True
+                    print('Fail dwn in restore')
+                    return -1
+                p = dwn.pieces[p_id]  # mandar a descrgar un window de pieces
+                self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
             return 0
         return -1
 
-    def Cancel(self):
-        pass
+    def Cancel(self, dwn_id):
+        dwn = self.download[dwn_id]
+        dwn.state = "cancel"
+        for i in range(len(dwn.pieces)):  # deleting pieces incomplets
+            p = dwn.pieces[i]
+            p_path = self.path + "/" + dwn.file_name + str(i)
+            try:
+                os.remove(p_path)
+            except:
+                pass
 
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
@@ -395,6 +383,23 @@ class Client(object):
 
         fo = open(self.path + "/" + file_name + str(piece_id), "wb")
         self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
+
+    def update_dwn_state(self, dwn, fail = False, finish = False):
+        if fail:
+            dwn.is_fail = True
+            dwn.state = "fail"
+
+            for i in range(len(dwn.pieces)):  # deleting pieces incomplets
+                p = dwn.pieces[i]
+                if not p.finish:  # delete the file of this piece
+                    p_path = self.path + "/" + dwn.file_name + str(i)
+                    try:
+                        os.remove(p_path)
+                    except:
+                        pass
+
+        elif finish:
+            dwn.state = "finish"
 
     def reconstruct_file(self, file_name, number_pieces):
         def erase():
@@ -567,22 +572,7 @@ class Client(object):
     @verify_dht_conexion
     def see_files(self):
         all = self.comunicator.all_files()
-        all = [f for f in all if f not in self.files]
         return all
-
-    def update_history(self):
-        d = {}
-        start = 0
-        if histsize < self.max_dwn:
-            start = self.max_dwn - histsize
-        d["range"] = {"first": str(start), "last":str(self.max_dwn - 1)} #TODO arreglar el last
-        for k in range(start, self.max_dwn):
-            dwn = self.download[k]
-            data = {"file":dwn.file_name, "size": str(dwn.size), "copy":str(dwn.actual_copy), "state": dwn.state}
-            d[str(k)] = data
-
-        with open(self.path + "/history.json", "w") as wfd:
-            json.dump(d, wfd)
 
     def load_my_files(self):
         extension = [".torrent", ".json" , "id"]
@@ -600,8 +590,9 @@ class Client(object):
 def main():
     print("client.py")
 
-    l = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16]
-    print(l[3:34])
+    l = [1,2,3,4,5]
+    l.remove(4)
+    print(l)
 
 
 

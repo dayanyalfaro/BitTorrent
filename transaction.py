@@ -3,6 +3,10 @@ import math as m
 import random as rd
 import time
 
+MB = 1024*1024
+GB = 1024*1024*1024
+max_cant_pieces = 500
+
 class Download(object):
     def __init__(self, id, file_name, size):
         self.id = id
@@ -17,16 +21,28 @@ class Download(object):
         #TODO pause dwn
         self.state = "ejecution"
 
+    def define_piece_length(self):
+        if self.size <= 50*MB: #size file lower 50 mg
+            return MB
+        elif 50*MB < self.size < GB:
+            return 2*MB
+        elif m.ceil(self.size/4*MB) < max_cant_pieces:
+            return 4*MB#ver si puedo con 4megas
+        else:
+            p_size = m.ceil(self.size/max_cant_pieces)
+            return p_size
+
+
     def partition(self):
         """
         Segmentate the file in pieces
         """
-        cantPieces = m.floor(m.log2(self.size))
-        step = m.floor(self.size/cantPieces)# cantPieces constant m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
-        # step = m.floor(self.size ** 0.5)
-        if step == 0:
+        # cantPieces = m.floor(m.log2(self.size))
+        # step = m.floor(self.size/cantPieces)   # m.floor(self.size ** 0.5)
+        step = self.define_piece_length()
+
+        if step == 0 or step > self.size:
             step = self.size
-        print("STEP", step, "SIZE", self.size)
         piece_id = 0
         actual_offset = 0
         while step <= self.size - actual_offset:
@@ -34,11 +50,14 @@ class Download(object):
             self.pending.append(piece_id)
             piece_id += 1
             actual_offset += step
-        print("ACTUAL OFFSET", actual_offset)
+
         if actual_offset != self.size:
+            self.pending.append(piece_id)
             self.pieces[piece_id] = Piece(
                 piece_id, actual_offset, self.size - actual_offset
             )
+
+        print(self.file_name, "CANTIDAD PIECES:", piece_id + 1, "PIECE SIZE:", step, "FILE SIZE:" , self.size)
 
     def distribute(self, pot_location):
         actual_n = 0
@@ -67,14 +86,13 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
-        self.actual_copy += self.pieces[id_piece].size  # debe devolver el proximo piece a descargar, es neces ario tener una lista de pieces activo
+        self.actual_copy += self.pieces[id_piece].size
         self.pending.remove(id_piece)
         new_piece_to_dwn = id_piece + totalP
-        #
-        # if new_piece_to_dwn < len(self.pieces):
-        #     return new_piece_to_dwn
-        # else:
-        #     return -1
+        if new_piece_to_dwn < len(self.pieces):
+            return self.pieces[new_piece_to_dwn]
+        else:
+            return -1
 
 
     def is_finish(self):
@@ -158,3 +176,19 @@ class Transaction(object):
 
     def __str__(self):
         return "%s -> %s, [%s], (%s), t: %s"%(str(self.fi), str(self.fo), str(self.is_fail), str(self.finish), str(self.type))
+
+
+
+def main():
+    print("transaction.py")
+    size = 1.5*1024*1024*1024
+    d = Download(3,"",size )
+    print(d.define_piece_length())
+
+
+
+
+
+
+if __name__ == "__main__":
+    main()

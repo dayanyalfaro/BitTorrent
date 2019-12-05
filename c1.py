@@ -15,10 +15,8 @@ f = "foto2.png"
 f2 = "dht.py"
 
 # c1.copy_file_from_directory("./foto2.png", "foto2.png")
-# c1.copy_file_from_directory("./tesis.pdf", "tesis.pdf")
-# c1.copy_file_from_directory("./dht.py", "dht.py")
-# c1.copy_file_from_directory("./hello", "hello")
-# c1.Download("chord.py")
+
+c1.Download("pulp.mp4")
 # time.sleep(1)
 #
 # c1.Download("dht.py")
@@ -28,8 +26,15 @@ f2 = "dht.py"
 # time.sleep(2)
 c1.Download("foto2.png")
 
-print(c1.download)
+#
+time.sleep(3)
+c1.Cancel(0)
 
-input()
-
-print(c1.Restore(0))
+# c1.Pause(0)
+# #
+# time.sleep(2)
+# # # print(c1.download)
+# # #
+# # # input()
+# # #
+# print(c1.Restore(0))
