@@ -27,9 +27,9 @@
                                 </div>
                             </div>
                         </div>
-                        <div class=col-md-offset-6 style="margin-top: 40px">
+                        <div class=col-md-offset-6 style="margin-top: 40px" id = "action_container">
                             {% if download.state == "failed" %}
-                                <button><a class="fa fa-download"> Retry</a></button>
+                                <button><a class="fa fa-download" href="{% url 'restore_download' download.id%}"> Retry</a></button>
                             {% endif %}
                             {% if download.state == "finish" %}
                                 <button class="btn"><a class="fa fa-clipboard"
@@ -37,7 +37,10 @@
                                 </button>
                             {% endif %}
                             {% if download.state == "ejecution" %}
-                                <button><a class="fa fa-ban"> Cancel</a></button>
+                                <button><a class="fa fa-pause" href="{% url 'pause_download' download.id%}"> Pause</a></button>
+                            {% endif %}
+                        {% if download.state == "pause" %}
+                                <button><a class="fa fa-play" href="{% url 'restore_download' download.id%}"> Continue</a></button>
                             {% endif %}
                         </div>
                     </div>
@@ -51,7 +54,6 @@
 
 {% block js %}
     <script type="text/javascript">
-
         $(document).ready(function () {
             const interval = setInterval(() => {
                 $.ajax({
@@ -69,6 +71,7 @@
                             bar.style.width = progress.toFixed(0) + '%';
                             bar.innerText = progress.toFixed(0) + '%';
                             var keep = 0
+
                             if (data["history"][i.toString()]["state"] != "failed" &&
                                 data["history"][i.toString()]["state"] != "finish" &&
                                 data["history"][i.toString()]["state"] != "paused"

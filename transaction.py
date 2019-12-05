@@ -1,7 +1,7 @@
-from BitTorrent_app.Logic.tools import *
+from tools import *
 import math as m
 import random as rd
-
+import time
 
 class Download(object):
     def __init__(self, id, file_name, size):
@@ -9,12 +9,13 @@ class Download(object):
         self.file_name = file_name
         self.size = size
         self.pieces = {}
+        self.pending = []
         self.count_finish = 0
         self.actual_copy = 0
         self.potential = []
         self.is_fail = False
         #TODO pause dwn
-        self.state = "ejecution"  #['finished', 'canceled', 'paused', 'restore', 'ejecution', 'failed']
+        self.state = "ejecution"
 
     def partition(self):
         """
@@ -22,6 +23,7 @@ class Download(object):
         """
         cantPieces = m.floor(m.log2(self.size))
         step = m.floor(self.size/cantPieces)# cantPieces constant m.floor(self.size / totalP)  # m.floor(self.size ** 0.5)
+        # step = m.floor(self.size ** 0.5)
         if step == 0:
             step = self.size
         print("STEP", step, "SIZE", self.size)
@@ -29,6 +31,7 @@ class Download(object):
         actual_offset = 0
         while step <= self.size - actual_offset:
             self.pieces[piece_id] = Piece(piece_id, actual_offset, step)
+            self.pending.append(piece_id)
             piece_id += 1
             actual_offset += step
         print("ACTUAL OFFSET", actual_offset)
@@ -50,9 +53,9 @@ class Download(object):
         self.partition()
         self.distribute(pot_location)
 
-    def restart_piece(self, id_piece):
+    def restart_piece(self, id_piece, remove = True):
         broken_node = self.pieces[id_piece].attendant
-        if broken_node in self.potential:
+        if remove and broken_node in self.potential:
             self.potential.remove(broken_node)
         if len(self.potential) > 0:
             r = rd.randint(0, len(self.potential) - 1)
@@ -64,11 +67,14 @@ class Download(object):
     def success_piece(self, id_piece):
         self.pieces[id_piece].finish = True
         self.count_finish += 1
-        # self.actual_copy += self.pieces[id_piece].size
-
-    def update_copy(self, data):
-        self.actual_copy += data
-
+        self.actual_copy += self.pieces[id_piece].size  # debe devolver el proximo piece a descargar, es neces ario tener una lista de pieces activo
+        self.pending.remove(id_piece)
+        new_piece_to_dwn = id_piece + totalP
+        #
+        # if new_piece_to_dwn < len(self.pieces):
+        #     return new_piece_to_dwn
+        # else:
+        #     return -1
 
 
     def is_finish(self):
@@ -98,26 +104,31 @@ class Transaction(object):
         self.finish = False
         self.dwn_id = dwn_id
         self.piece_id = piece_id
+        self.time = time.clock()
 
     def write(self):
-        # try:
-        # TODO : Poner try para captar la excepcion, la escritura fallo
-        if self.type == "dwn":
-            self.fo.write(self.data)
-            self.data_dwn += self.data
-        if self.type == "send":
-            self.fo.send(self.data)
-        self.is_load = False
-        self.actual_copy += len(self.data)
-        if self.actual_copy >= self.size:
-            self.finish = True
-            self.fi.close()
+        try:
+            # TODO : Poner try para captar la excepcion, la escritura fallo
             if self.type == "dwn":
-                self.fo.close()
-        elif len(self.data) == 0: # TODO: Parche aqui
+                self.fo.write(self.data)
+                self.data_dwn += self.data
+            if self.type == "send":
+                self.fo.send(self.data)
+            self.is_load = False
+            self.actual_copy += len(self.data)
+            if self.actual_copy >= self.size:
+                self.finish = True
+                self.fi.close()
+                if self.type == "dwn":
+                    self.fo.close()
+            elif len(self.data) == 0:
+                self.is_fail = True
+                self.close()
+            self.time = time.clock()
+        except:
             self.is_fail = True
-
-
+            self.close()
+            print ("Fail transaccion in write", self.dwn_id, self.piece_id)
 
 
     def read(self):
@@ -127,19 +138,23 @@ class Transaction(object):
                 self.data = self.fi.recv(bf)
             if self.type == "send":
                 self.data = self.fi.read(bf)
-
             self.is_load = True
         except:
             self.is_fail = True
-            self.fi.close()
-            self.fo.close()
+            self.close()
             print("fail read transaction")
+        self.time = time.clock()
+
+    def close(self):
+        self.fi.close()
+        self.fo.close()
+
+    def validate_timeout(self, time_out):
+        if(time.clock() - self.time > time_out):
+            self.is_fail = True
+            self.close()
+            print ("Fail transaction because timeout:", time_out)
+            # TODO hacer prueba de socket aqui un poco mas fuertes.
 
     def __str__(self):
         return "%s -> %s, [%s], (%s), t: %s"%(str(self.fi), str(self.fo), str(self.is_fail), str(self.finish), str(self.type))
-
-# d = Download("aa", 21)
-# d.partition()
-# d.distribute([11, 12, 13, 14, 15])
-# for k in d.pieces.values():
-#     print(k.id, k.offset, k.size, k.attendant)

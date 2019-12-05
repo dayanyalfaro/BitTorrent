@@ -58,12 +58,10 @@ def all_files(request):
 def downloads(request):
     global client
     start = 0
-    if histsize < client.max_dwn:
-        start = client.max_dwn - histsize
     context = {}
     dwns = []
     if client:
-        for key in range(start, client.max_dwn):
+        for key in range(client.max_dwn - 1, start-1, -1):
             dwns.append({
                 'id':key,
                 'name': client.download[key].file_name,
@@ -134,8 +132,6 @@ def update_progress_bar(request):
     global client
     history = {}
     start = 0
-    if histsize < client.max_dwn:
-        start = client.max_dwn - histsize
     history["range"] = {"first": str(start), "last": str(client.max_dwn)}
     for k in range(start, client.max_dwn):
         dwn = client.download[k]
@@ -146,6 +142,18 @@ def update_progress_bar(request):
     if request.is_ajax():
         return JsonResponse(data)
 
+@logged_only
+def pause_download(request, dwn_id):
+    global client
+    client.Pause(dwn_id)
+    return HttpResponseRedirect('/dwns/')
+
+
+@logged_only
+def restore_download(request, dwn_id):
+    global client
+    client.Restore(dwn_id)
+    return HttpResponseRedirect('/dwns/')
 
 def get_address(request):
     global client
