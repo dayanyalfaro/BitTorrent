@@ -10,6 +10,8 @@ urlpatterns = [
     path('', views.get_address),
     path('dt/<str:filename>/', views.download_torrent,name = 'download_torrent'),
     path('df/<str:filename>/', views.download_file,name = 'download_file'),
+    path('pause/<int:dwn_id>/', views.pause_download,name = 'pause_download'),
+    path('restore/<int:dwn_id>/', views.restore_download,name = 'restore_download'),
 
 
 
