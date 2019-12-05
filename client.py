@@ -48,6 +48,7 @@ class Client(object):
         self.set_id()
         self.update_history()
         self.files = self.load_my_files()
+        self.dwn_in_progress = []
 
         Thread(target=self.start_listen, args=()).start()
 
@@ -115,11 +116,10 @@ class Client(object):
                     if t.finish: #TODO delete t.fi, t.fo from fd_dic
                         check = self.check_piece_with_torrent(t.piece_id,t.data_dwn,t.size, dwn.file_name)#check if the piece is correct
                         if check:
+                            print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
                             next_p = dwn.success_piece(t.piece_id)
                             if next_p != -1:
-                                print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
-                                #intent download the next piece
-                                try:
+                                try:  #intent download the next piece
                                     self.dwn_file_from_peer(dwn.file_name, next_p.attendant, next_p.offset, next_p.size, dwn.id, next_p.id)
                                     print(dwn.file_name + " Piece:" + str(next_p.id) + " -->  ", next_p.attendant, "Size: ", next_p.size)
                                 except:
@@ -164,8 +164,7 @@ class Client(object):
                         else:
                             p = dwn.pieces[t.piece_id]
                             self.dwn_file_from_peer(dwn.file_name, p.attendant,p.offset,p.size,dwn.id, p.id)
-                    else:
-                        dwn.update_copy(len(t.data))
+
                 else: #type = 'send'
                     if t.finish:
                         fd_to_close.append((t.fo, time.clock()))
@@ -192,7 +191,6 @@ class Client(object):
             fd_to_close = fd_to_close_new
 
             #TODO delete transaction from fd_dic
-
 
     def attend_client(self, s):
         """
@@ -257,42 +255,26 @@ class Client(object):
             pass
         return size >= 0
 
-    def Download0(self, file_name):
-        """
-        
-        :param file_name: 
-        :return: 
-        """
-        self.download_torrent(file_name)
-
-        location = self.potencial_location(file_name)
-        print("location", location)
-
-        if len(location) > 0:
-            dwn = Download(self.max_dwn, file_name, self.get_len_file(file_name))
-            self.max_dwn += 1
-            self.download[dwn.id] = dwn
-            dwn.build(location)
-
-            for i in range(len(dwn.pieces)):
-                p = dwn.pieces[i]
-                print("Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
-                self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-            return 0  #the download start
-        else:
-            print("The file " + file_name + " is not available")
-            return 3
-
     def Download(self, file_name):
         """
 
         :param file_name: Name of the file to download
-        :return: 0: is posible download file
+        :return: 0: the download start
                  1: not available file
-                 2:dwn fail
+                 2: dwn fail
+                 3: the dwn is in progress now
+                 4: the file exits
         """
         try:
             self.download_torrent(file_name)
+
+            if self.dwn_in_progress.__contains__(file_name):
+                print(file_name, "download in progress")
+                return 3
+
+            if self.files.__contains__(file_name):
+                print(file_name, "exits")
+                return 4
 
             location = self.potencial_location(file_name)
             print("location", location)
@@ -364,7 +346,6 @@ class Client(object):
                 self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
             return 0
         return -1
-
 
     def Cancel(self):
         pass
