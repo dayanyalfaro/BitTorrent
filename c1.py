@@ -24,10 +24,12 @@ c1.Download("pulp.mp4")
 #
 # c1.Download("tools.py")
 # time.sleep(2)
-# c1.Download("foto2.png")
+c1.Download("foto2.png")
 
 #
-# time.sleep(3)
+time.sleep(3)
+c1.Cancel(0)
+
 # c1.Pause(0)
 # #
 # time.sleep(2)

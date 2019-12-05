@@ -41,7 +41,7 @@ class Download(object):
         # step = m.floor(self.size/cantPieces)   # m.floor(self.size ** 0.5)
         step = self.define_piece_length()
 
-        if step == 0:
+        if step == 0 or step > self.size:
             step = self.size
         piece_id = 0
         actual_offset = 0

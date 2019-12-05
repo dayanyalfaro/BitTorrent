@@ -69,7 +69,7 @@ class Node:
         self.threads['stabilize'] = ChordThread(self, 'stabilize', ())
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
-        # self.threads['replicate'] = ChordThread(self, 'replicate', ())
+        self.threads['replicate'] = ChordThread(self, 'replicate', ())
         for key in self.threads.keys():
             self.threads[key].start()
 

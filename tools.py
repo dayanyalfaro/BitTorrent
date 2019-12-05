@@ -18,7 +18,7 @@ SIZE = 1<<LOGSIZE
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1024*1024
+bufsize = 1
 totalP = 5 # the max number of pieces in download
 histsize = 20
 maxpage = 5
