@@ -1,5 +1,5 @@
 import os
-import socket
+from socket import *
 import time
 import torrent_parser
 import json
@@ -10,6 +10,14 @@ from threading import Thread
 from BitTorrent_app.Logic.middleware import Comunicator
 from BitTorrent_app.Logic.tools import *
 from BitTorrent_app.Logic.transaction import Transaction, Download
+
+def ClientAutom(path):
+    addr = get_auto_addr(7000, 7999)
+    dht_ip , dht_port = discover(addr[0], addr[1])
+    c = Client(dht_ip, dht_port,path, addr)
+    return c
+
+
 
 def verify_dht_conexion(func):
     def wrapper(self,*args,**kwargs):
@@ -37,7 +45,7 @@ class Client(object):
         self.fd_dic = {}
         self.fd_to_close = []
         self.pub = []
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = socket(AF_INET, SOCK_STREAM)
         self.addr_listen = addr_listen
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
@@ -57,12 +65,12 @@ class Client(object):
 
 
     def connect_to_peer(self, addr):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket(AF_INET, SOCK_STREAM)
         s.connect(addr)
         return s
 
     def start_listen(self): #TODO poner lindo  el metodo
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.sock.bind(self.addr_listen)
         self.sock.listen(backlog)
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
@@ -216,6 +224,9 @@ class Client(object):
                  False: if can not close socket s because a transaction use them
         """
         rqs = self.parse_rqs(s)
+
+        if(rqs == None or len(rqs) == 0):
+            return True
 
         if rqs[0] == "GET":
             try:
@@ -430,8 +441,14 @@ class Client(object):
                 break
             l += d
             d = s.recv(1).decode()
-        rqs = s.recv(l).decode()
-        rqs = str(rqs).split("|")
+        rqs = None
+        if(l == ""):
+            return rqs
+        if(l is str):
+            print ("bad request, ", l)
+        else:
+            rqs = s.recv(l).decode()
+            rqs = str(rqs).split("|")
         return rqs
 
     def create_transaction(self, fi, fo, type_t, size, dwn_id, piece_id):

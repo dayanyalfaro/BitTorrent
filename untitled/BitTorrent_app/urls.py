@@ -3,6 +3,7 @@ from BitTorrent_app import views
 
 urlpatterns = [
     path('home/', views.home, name = 'home'),
+    path('get_address_autom/', views.get_address_autom, name = 'get_address_autom'),
     path('files/', views.all_files, name = 'files'),
     path('dwns/', views.downloads, name = 'downloads'),
     path('uplds/', views.uploads, name = 'uploads'),

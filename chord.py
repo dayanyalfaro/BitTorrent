@@ -8,6 +8,7 @@ import time
 import sys
 
 from untitled.BitTorrent_app.Logic.settings import *
+from tools import announce
 # from untitled.BitTorrent_app.Logic.tools import hash
 
 def get_hash(string):
@@ -69,7 +70,10 @@ class Node:
         self.threads['stabilize'] = ChordThread(self, 'stabilize', ())
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
-        self.threads['replicate'] = ChordThread(self, 'replicate', ())
+        self.threads['replicate'] = ChordThread(self, 'replicate', ()) # TODO: Bugs Here
+
+        #announce_me
+        self.threads['announce_me'] = ChordThread(self, 'announce_me', ())
 
         for key in self.threads.keys():
             self.threads[key].start()
@@ -134,6 +138,10 @@ class Node:
         port = port,
         ns = False
     )
+
+    def announce_me(self):
+        announce(self.ip, self.port)
+
 
     def get(self, key):
         info = self.find_successor(key)

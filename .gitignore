@@ -110,6 +110,7 @@ venv.bak/
 *.pyc
 *.pdf
 *.avi
+*.mp4
 Storage/
 files/
 *.png

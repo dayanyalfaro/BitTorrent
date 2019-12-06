@@ -30,6 +30,58 @@ def get_remote_node(ip, port):
     p = Pyro4.Proxy(uri)
     return p
 
+## AutoDiscover tool
+
+from BitTorrent_app.Logic.multicast import listen_loop
+from BitTorrent_app.Logic.multicast import announce_loop
+from BitTorrent_app.Logic.multicast import get_local_ip
+import time
+from socket import *
+
+
+def discover(ipban, portban):
+    for msg in listen_loop():
+        ip, port = msg.split()
+        if ip == ipban and int(portban) == int(port):
+            continue
+        try:
+            node = get_remote_node(ip, port)
+            if node.ping():
+                return (ip, int(port))
+        except:
+            pass
+
+
+def announce(ip, port):
+    msg = "%s %s" % (ip, str(port))
+    announce_loop(msg)
+
+
+def get_ip():
+    return get_local_ip()
+
+
+def get_free_port(ip, bport, eport):
+    for port in range(bport, eport + 1):
+        # try:
+        client = socket(AF_INET, SOCK_STREAM)
+        conexion = client.connect_ex((ip, port))
+        if (conexion != 0):
+            client.close()
+            time.sleep(2)
+            return port
+        else:
+            client.close()
+    return -1
+
+
+def get_auto_addr(bport, eport):
+    ip = get_local_ip()
+    port = get_free_port(ip, bport, eport)
+    return (ip, int(port))
+
+
+## end autodiscover
 
 def start_service(obj, ip, port):
     Pyro4.Daemon.serveSimple(
