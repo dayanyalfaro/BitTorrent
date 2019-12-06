@@ -9,6 +9,7 @@ import sys
 
 from broadcast_server import *
 from untitled.BitTorrent_app.Logic.settings import *
+from tools import announce
 # from untitled.BitTorrent_app.Logic.tools import hash
 
 def get_hash(string):
@@ -37,6 +38,7 @@ def repeat_and_sleep(t):
                 time.sleep(t)
         return wrapper
     return decorator
+
 
 
 @Pyro4.expose
@@ -71,7 +73,10 @@ class Node:
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
         self.threads['replicate'] = ChordThread(self, 'replicate', ())
-        self.threads['broadcast'] = ChordThread(self,'broadcast',())
+        # self.threads['broadcast'] = ChordThread(self,'broadcast',())
+
+        #announce_me
+        self.threads['announce_me'] = ChordThread(self, 'announce_me', ())
 
         for key in self.threads.keys():
             self.threads[key].start()
@@ -136,6 +141,9 @@ class Node:
         port = port,
         ns = False
     )
+
+    def announce_me(self):
+        announce(self.ip, self.port)
 
     def broadcast(self):
         broadcast_server(self.ip,self.port)
