@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from BitTorrent_app.forms import AddressForm, UploadFileForm
-from BitTorrent_app.Logic.client import Client
+from BitTorrent_app.Logic.client import Client, ClientAutom
 from BitTorrent_app.Logic.tools import histsize
 from untitled.settings import STATICFILES_DIRS
 
@@ -154,6 +154,12 @@ def restore_download(request, dwn_id):
     global client
     client.Restore(dwn_id)
     return HttpResponseRedirect('/dwns/')
+
+def get_address_autom(request):
+    global client
+    path = staticfil + "/Storage"
+    client = ClientAutom(path)
+    return HttpResponseRedirect('/home/')
 
 def get_address(request):
     global client

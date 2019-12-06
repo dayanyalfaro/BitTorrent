@@ -11,6 +11,14 @@ from BitTorrent_app.Logic.middleware import Comunicator
 from BitTorrent_app.Logic.tools import *
 from BitTorrent_app.Logic.transaction import Transaction, Download
 
+def ClientAutom(path):
+    addr = get_auto_addr(7000, 7999)
+    dht_ip , dht_port = discover(addr[0], addr[1])
+    c = Client(dht_ip, dht_port,path, addr)
+    return c
+
+
+
 def verify_dht_conexion(func):
     def wrapper(self,*args,**kwargs):
         try:
