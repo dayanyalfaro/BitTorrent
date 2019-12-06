@@ -1,5 +1,5 @@
 import os
-import socket
+from socket import *
 import time
 import torrent_parser
 import json
@@ -37,7 +37,7 @@ class Client(object):
         self.fd_dic = {}
         self.fd_to_close = []
         self.pub = []
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.sock = socket(AF_INET, SOCK_STREAM)
         self.addr_listen = addr_listen
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
@@ -57,12 +57,12 @@ class Client(object):
 
 
     def connect_to_peer(self, addr):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket(AF_INET, SOCK_STREAM)
         s.connect(addr)
         return s
 
     def start_listen(self): #TODO poner lindo  el metodo
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.sock.bind(self.addr_listen)
         self.sock.listen(backlog)
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)

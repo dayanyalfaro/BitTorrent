@@ -71,7 +71,7 @@ class Node:
         self.threads['stabilize'] = ChordThread(self, 'stabilize', ())
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
-        self.threads['replicate'] = ChordThread(self, 'replicate', ())
+        self.threads['replicate'] = ChordThread(self, 'replicate', ()) # TODO: Bugs Here
         # self.threads['broadcast'] = ChordThread(self,'broadcast',())
 
         #announce_me

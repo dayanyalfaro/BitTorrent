@@ -78,6 +78,7 @@ class DHT(object):
 
 def main():
     d = DHT()
+    time.sleep(10)
     d.set(get_hash(maxclient),0)
     d.set(get_hash(allfiles),[])
     d.set(get_hash(maxstep),0)
