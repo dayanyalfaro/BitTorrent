@@ -72,7 +72,6 @@ class Node:
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
         self.threads['replicate'] = ChordThread(self, 'replicate', ()) # TODO: Bugs Here
-        # self.threads['broadcast'] = ChordThread(self,'broadcast',())
 
         #announce_me
         self.threads['announce_me'] = ChordThread(self, 'announce_me', ())
@@ -144,8 +143,6 @@ class Node:
     def announce_me(self):
         announce(self.ip, self.port)
 
-    def broadcast(self):
-        broadcast_server(self.ip,self.port)
 
     def get(self, key):
         info = self.find_successor(key)

@@ -6,8 +6,6 @@ import time
 
 from tools import get_auto_addr, discover
 
-from broadcast_server import *
-
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 filestep = "#step"    #files in a particular step
