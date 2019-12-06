@@ -225,6 +225,9 @@ class Client(object):
         """
         rqs = self.parse_rqs(s)
 
+        if(rqs == None or len(rqs) == 0):
+            return True
+
         if rqs[0] == "GET":
             try:
                 offset = int(rqs[2])  # open file start in the offset
@@ -437,8 +440,14 @@ class Client(object):
                 break
             l += d
             d = s.recv(1).decode()
-        rqs = s.recv(l).decode()
-        rqs = str(rqs).split("|")
+        rqs = None
+        if(l == ""):
+            return rqs
+        if(l is str):
+            print ("bad request, ", l)
+        else:
+            rqs = s.recv(l).decode()
+            rqs = str(rqs).split("|")
         return rqs
 
     def create_transaction(self, fi, fo, type_t, size, dwn_id, piece_id):

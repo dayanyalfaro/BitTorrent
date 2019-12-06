@@ -50,6 +50,7 @@ def all_files(request):
         d['name'] = file
         d['torrent'] = client.torrent_exists(file)
         files.append(d)
+    print (files)
     context['FILES'] = files
     context['query'] = query
     return render(request, '../templates/all_files.html', context)
