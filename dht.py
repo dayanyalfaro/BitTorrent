@@ -104,5 +104,5 @@ def main():
     # time.sleep(1)
     # n2 = CreateChordAutom()
     # ## ***
-
-main()
+if __name__ == "__main__":
+    main()
