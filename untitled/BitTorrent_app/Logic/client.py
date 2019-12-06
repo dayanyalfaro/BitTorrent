@@ -308,7 +308,7 @@ class Client(object):
                     p = dwn.pieces[i]
                     print(file_name + " Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                     self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-
+                self.dwn_in_progress.append(file_name)
                 return 0  # the download start
             else:
                 print("The file " + file_name + " is not available")
@@ -419,6 +419,7 @@ class Client(object):
             w.close()
             self.publish(file_name, self.get_len_file(file_name), None)
         Thread(target= erase).start()
+        self.dwn_in_progress.remove(file_name)
 
     def parse_rqs(self, s):
         d = s.recv(1).decode()

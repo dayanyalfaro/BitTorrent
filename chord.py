@@ -7,7 +7,6 @@ import hashlib
 import time
 import sys
 
-from broadcast_server import *
 from untitled.BitTorrent_app.Logic.settings import *
 # from untitled.BitTorrent_app.Logic.tools import hash
 
@@ -71,7 +70,6 @@ class Node:
         self.threads['update_successors'] = ChordThread(self, 'update_successors', ())
         self.threads['fix_fingers'] = ChordThread(self, 'fix_fingers', ())
         self.threads['replicate'] = ChordThread(self, 'replicate', ())
-        self.threads['broadcast'] = ChordThread(self,'broadcast',())
 
         for key in self.threads.keys():
             self.threads[key].start()
@@ -136,9 +134,6 @@ class Node:
         port = port,
         ns = False
     )
-
-    def broadcast(self):
-        broadcast_server(self.ip,self.port)
 
     def get(self, key):
         info = self.find_successor(key)

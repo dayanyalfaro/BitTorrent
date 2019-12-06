@@ -116,9 +116,21 @@ def uploads(request):
 
 @logged_only
 def download_file(request, filename):
+    global client
+    context = {}
     if client:
-        client.Download(filename)
-    return HttpResponseRedirect('/dwns/')
+       result = client.Download(filename)
+    if result == 0:
+        return HttpResponseRedirect('/dwns/')
+    else:
+        if result == 1:
+            message = f'{filename} is not available at the moment'
+        if result == 3:
+            message = f'Download of {filename} is already in progress'
+        if result == 4:
+            message = f'File {filename} already exists'
+        context['message'] = message
+        return render(request, 'display_message.html', context)
 
 @logged_only
 def download_torrent(request, filename):
@@ -153,6 +165,11 @@ def pause_download(request, dwn_id):
 def restore_download(request, dwn_id):
     global client
     client.Restore(dwn_id)
+    return HttpResponseRedirect('/dwns/')
+
+def cancel_download(request, dwn_id):
+    global client
+    client.Cancel(dwn_id)
     return HttpResponseRedirect('/dwns/')
 
 def get_address(request):

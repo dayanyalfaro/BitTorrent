@@ -12,7 +12,6 @@ urlpatterns = [
     path('df/<str:filename>/', views.download_file,name = 'download_file'),
     path('pause/<int:dwn_id>/', views.pause_download,name = 'pause_download'),
     path('restore/<int:dwn_id>/', views.restore_download,name = 'restore_download'),
-
-
+    path('cancel/<int:dwn_id>/', views.cancel_download ,name = 'cancel_download'),
 
 ]

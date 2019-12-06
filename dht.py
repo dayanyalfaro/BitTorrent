@@ -3,8 +3,6 @@ from chord import *
 import sys
 import hashlib
 
-from broadcast_server import *
-
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 filestep = "#step"    #files in a particular step

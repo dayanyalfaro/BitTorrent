@@ -15,7 +15,9 @@
 {% block body %}
     <div class=slider>
         <div class="container">
-
+            {% if not DOWNLOADS %}
+                <h2>No downloads to show</h2>
+            {% endif %}
             <div class="progress-wrap">
                 {% for download in DOWNLOADS %}
                     <div class="row">
@@ -31,20 +33,29 @@
                             {% if download.state == "failed" %}
                                 <button><a class="fa fa-download" href="{% url 'restore_download' download.id %}"
                                            id="button{{ download.id }}"> Retry</a></button>
+                                <button id="cancelbutton{{ download.id }}"><a class="fa fa-ban" href="{% url 'cancel_download' download.id %}"
+                                           > Cancel</a></button>
                             {% endif %}
                             {% if download.state == "finish" %}
                                 <button class="btn"><a class="fa fa-clipboard"
                                                        href="{% static "/Storage/" %}{{ download.name }}"
                                                        id="button{{ download.id }}"> View</a>
                                 </button>
+                                 <button id="cancelbutton{{ download.id }}"><a class="fa fa-ban" href="{% url 'cancel_download' download.id %}"
+                                           > Cancel</a></button>
+
                             {% endif %}
                             {% if download.state == "ejecution" %}
                                 <button><a class="fa fa-pause" href="{% url 'pause_download' download.id %}"
                                            id="button{{ download.id }}"> Pause</a></button>
+                                <button id="cancelbutton{{ download.id }}"><a class="fa fa-ban" href="{% url 'cancel_download' download.id %}"
+                                           > Cancel</a></button>
                             {% endif %}
                             {% if download.state == "pause" %}
                                 <button><a class="fa fa-play" href="{% url 'restore_download' download.id %}"
                                            id="button{{ download.id }}"> Continue</a></button>
+                                <button id="cancelbutton{{ download.id }}"><a class="fa fa-ban" href="{% url 'cancel_download' download.id %}"
+                                           > Cancel</a></button>
                             {% endif %}
                         </div>
                     </div>
@@ -74,23 +85,27 @@
                             console.log(progress);
                             bar.style.width = progress.toFixed(0) + '%';
                             bar.innerText = progress.toFixed(0) + '%';
-                            var keep = 0
+                            var keep = 0;
                             if (data["history"][i.toString()]["state"] == "finish") {
                                 button = document.getElementById("button".concat(i.toString()));
-                                button.innerText = "View"
-                                button.href = "/static/Storage/".concat(data["history"][i.toString()]["file"])
-                                button.className = "fa fa-clipboard"
+                                button.innerText = "View";
+                                button.href = "/static/Storage/".concat(data["history"][i.toString()]["file"]);
+                                button.className = "fa fa-clipboard";
+
+                                cancelbutton = document.getElementById("cancelbutton".concat(i.toString()));
+                                cancelbutton.style.display = "none";
+
                             }
                             if (data["history"][i.toString()]["state"] == "failed") {
                                 button = document.getElementById("button".concat(i.toString()));
-                                button.innerText = "Retry"
-                                button.href = "/restore/".concat(i.toString())
+                                button.innerText = "Retry";
+                                button.href = "/restore/".concat(i.toString());
                             }
                             if (data["history"][i.toString()]["state"] != "failed" &&
                                 data["history"][i.toString()]["state"] != "finish" &&
                                 data["history"][i.toString()]["state"] != "paused"
                             ) {
-                                keep = 1
+                                keep = 1;
                             }
                         }
                         if (keep == 0) {
