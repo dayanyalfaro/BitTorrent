@@ -40,7 +40,6 @@ def repeat_and_sleep(t):
     return decorator
 
 
-
 @Pyro4.expose
 class Node:
     def __init__(self, local_address, remote_address: tuple = None):

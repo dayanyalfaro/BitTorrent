@@ -38,7 +38,7 @@ import time
 from socket import *
 
 
-def discover(ipban, portban, func_validator):
+def discover(ipban, portban):
     for msg in listen_loop():
         ip, port = msg.split()
         if ip == ipban and int(portban) == int(port):
@@ -77,7 +77,7 @@ def get_free_port(ip, bport, eport):
 def get_auto_addr(bport, eport):
     ip = get_local_ip()
     port = get_free_port(ip, bport, eport)
-    return (ip, port)
+    return (ip, int(port))
 
 
 ## end autodiscover

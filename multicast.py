@@ -46,7 +46,7 @@ def get_local_ip():
     # interface to use.
     if local_ip == None:
         local_ip = "127.0.0.1"
-    print("my local ip", local_ip)
+    # print("my local ip", local_ip)
     return local_ip
 
 
