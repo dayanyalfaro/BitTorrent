@@ -142,3 +142,12 @@ if __name__ == '__main__':
     #     exit("Run 'multicast_example.py listen' or 'multicast_example.py announce'.")
 
     print(get_local_ip())
+
+    if sys.argv[1] == "listen":
+        for i in listen_loop():
+            print(i)
+    elif sys.argv[1] == "announce":
+        announce_loop("i am here, (ip,port)")
+    else:
+        exit("Run 'multicast_example.py listen' or 'multicast_example.py announce'.")
+
