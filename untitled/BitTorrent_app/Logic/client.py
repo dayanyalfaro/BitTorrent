@@ -225,9 +225,9 @@ class Client(object):
         """
         rqs = self.parse_rqs(s)
 
+        print("RQS ", rqs)
         if(rqs == None or len(rqs) == 0):
             return True
-
         if rqs[0] == "GET":
             try:
                 offset = int(rqs[2])  # open file start in the offset
@@ -377,6 +377,8 @@ class Client(object):
     def Cancel(self, dwn_id):
         dwn = self.download[dwn_id]
         dwn.state = "cancel"
+        if self.dwn_in_progress.__contains__(dwn.file_name):
+            self.dwn_in_progress.remove(dwn.file_name)
         for i in range(len(dwn.pieces)):  # deleting pieces incomplets
             p = dwn.pieces[i]
             p_path = self.path + "/" + dwn.file_name + str(i)
