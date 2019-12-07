@@ -30,7 +30,7 @@
                             </div>
                         </div>
                         <div class=col-md-offset-6 style="margin-top: 40px" id="action_container">
-                            {% if download.state == "failed" %}
+                            {% if download.state == "fail" %}
                                 <button><a class="fa fa-download" href="{% url 'restore_download' download.id %}"
                                            id="button{{ download.id }}"> Retry</a></button>
                                 <button id="cancelbutton{{ download.id }}"><a class="fa fa-ban" href="{% url 'cancel_download' download.id %}"
@@ -96,12 +96,12 @@
                                 cancelbutton.style.display = "none";
 
                             }
-                            if (data["history"][i.toString()]["state"] == "failed") {
+                            if (data["history"][i.toString()]["state"] == "fail") {
                                 button = document.getElementById("button".concat(i.toString()));
                                 button.innerText = "Retry";
                                 button.href = "/restore/".concat(i.toString());
                             }
-                            if (data["history"][i.toString()]["state"] != "failed" &&
+                            if (data["history"][i.toString()]["state"] != "fail" &&
                                 data["history"][i.toString()]["state"] != "finish" &&
                                 data["history"][i.toString()]["state"] != "paused"
                             ) {

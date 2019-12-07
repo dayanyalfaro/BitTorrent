@@ -366,6 +366,8 @@ class Client(object):
     def Cancel(self, dwn_id):
         dwn = self.download[dwn_id]
         dwn.state = "cancel"
+        if self.dwn_in_progress.__contains__(dwn.file_name):
+            self.dwn_in_progress.remove(dwn.file_name)
         for i in range(len(dwn.pieces)):  # deleting pieces incomplets
             p = dwn.pieces[i]
             p_path = self.path + "/" + dwn.file_name + str(i)

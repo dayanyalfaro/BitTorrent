@@ -57,7 +57,7 @@ def announce(ip, port):
 
 
 def get_ip():
-    return get_local_ip()
+    return get_local_ip()[0]
 
 
 def get_free_port(ip, bport, eport):
@@ -75,7 +75,7 @@ def get_free_port(ip, bport, eport):
 
 
 def get_auto_addr(bport, eport):
-    ip = get_local_ip()
+    ip = get_local_ip()[0]
     port = get_free_port(ip, bport, eport)
     return (ip, int(port))
 

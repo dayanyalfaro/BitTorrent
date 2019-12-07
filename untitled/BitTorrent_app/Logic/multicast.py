@@ -24,30 +24,29 @@ def ip_is_local(ip_string):
 
 # TODO: Hacer esto con netifaces.
 def get_local_ip():
-    """
-    Returns the first externally facing local IP address that it can find.
 
-    Even though it's longer, this method is preferable to calling socket.gethostbyname(socket.gethostname()) as
-    socket.gethostbyname() is deprecated. This also can discover multiple available IPs with minor modification.
-    We excludes 127.0.0.1 if possible, because we're looking for real interfaces, not loopback.
+    try:
+        from netifaces import interfaces, ifaddresses, AF_INET
+        ip = '127.0.0.1'
+        li = []
 
-    Some linuxes always returns 127.0.1.1, which we don't match as a local IP when checked with ip_is_local().
-    We then fall back to the uglier method of connecting to another server.
-    """
+        for ifacename in interfaces():
+            for add in ifaddresses(ifacename).setdefault(AF_INET, [{'addr':'00'}]):
+                if add['addr'] != '00' and add['addr']!='lo0':
+                    li.append(add['addr'])
 
-    # socket.getaddrinfo returns a bunch of info, so we just get the IPs it returns with this list comprehension.
-    local_ips = [x[4][0] for x in socket.getaddrinfo(socket.gethostname(), 80)
-                 if ip_is_local(x[4][0])]
+        if ip in li:
+            li.remove(ip)
+        if '172.17.42.1' in li:
+            li.remove('172.17.42.1')
+        if not len(li):
+            return [ip]
+        return li
 
-    # select the first IP, if there is one.
-    local_ip = local_ips[0] if len(local_ips) > 0 else None
+    except:
+        print ("no tienes instalado netifaces")
 
-    # If the previous method didn't find anything, use this less desirable method that lets your OS figure out which
-    # interface to use.
-    if local_ip == None:
-        local_ip = "127.0.0.1"
-    # print("my local ip", local_ip)
-    return local_ip
+    return ["127.0.0.1"]
 
 
 def create_socket(multicast_ip, port):
@@ -55,7 +54,7 @@ def create_socket(multicast_ip, port):
     Creates a socket, sets the necessary options on it, then binds it. The socket is then returned for use.
     """
 
-    local_ip = get_local_ip()
+    local_ip = get_local_ip()[0]
 
     # create a UDP socket
     my_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)

@@ -224,6 +224,7 @@ class Client(object):
                  False: if can not close socket s because a transaction use them
         """
         rqs = self.parse_rqs(s)
+        print("RQS",rqs)
 
         if(rqs == None or len(rqs) == 0):
             return True
@@ -275,7 +276,9 @@ class Client(object):
             s = self.connect_to_peer(addr)
             rqs = "HAS|" + file_name
             rqs = "%d|%s" % (len(rqs), rqs)
+
             s.send(rqs.encode())
+            print("rqs has file", rqs)
             size = int(self.parse_rqs(s)[0])
             s.close()
         except:
@@ -399,6 +402,7 @@ class Client(object):
         if fail:
             dwn.is_fail = True
             dwn.state = "fail"
+            print("FAIL Dwn ", dwn.file_name)
 
             for i in range(len(dwn.pieces)):  # deleting pieces incomplets
                 p = dwn.pieces[i]
