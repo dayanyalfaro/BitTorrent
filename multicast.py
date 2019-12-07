@@ -24,14 +24,15 @@ def ip_is_local(ip_string):
 
 # TODO: Hacer esto con netifaces.
 def get_local_ip():
+
     try:
         from netifaces import interfaces, ifaddresses, AF_INET
         ip = '127.0.0.1'
         li = []
 
         for ifacename in interfaces():
-            for add in ifaddresses(ifacename).setdefault(AF_INET, [{'addr': '00'}]):
-                if add['addr'] != '00' and add['addr'] != 'lo0':
+            for add in ifaddresses(ifacename).setdefault(AF_INET, [{'addr':'00'}]):
+                if add['addr'] != '00' and add['addr']!='lo0':
                     li.append(add['addr'])
 
         if ip in li:
@@ -43,7 +44,7 @@ def get_local_ip():
         return li
 
     except:
-        print("no tienes instalado netifaces")
+        print ("no tienes instalado netifaces")
 
     return ["127.0.0.1"]
 
@@ -131,6 +132,16 @@ if __name__ == '__main__':
 
     # In a real case, you'll most likely send and receive from the same port using Gevent or Twisted,
     # so the code in create_socket() will apply more directly.
+    #
+    # if sys.argv[1] == "listen":
+    #     for i in listen_loop():
+    #         print(i)
+    # elif sys.argv[1] == "announce":
+    #     announce_loop("i am here, (ip,port)")
+    # else:
+    #     exit("Run 'multicast_example.py listen' or 'multicast_example.py announce'.")
+
+    print(get_local_ip())
 
     if sys.argv[1] == "listen":
         for i in listen_loop():

@@ -31,7 +31,7 @@ class DHT(object):
         # self.nodes.append(Node(('192.168.43.124',8888)))
         # self.nodes.append(Node(('127.0.0.1',8009),('192.168.43.124',8888)))
         # self.nodes.append(Node(('127.0.0.1',8001),('192.168.43.124',8888)))
-        # self.nodes.append(Node(('127.0.0.1',8003),('192.168.43.124',8888)))
+        # self.pipnodes.append(Node(('127.0.0.1',8003),('192.168.43.124',8888)))
         # self.nodes.append(Node(('127.0.0.1',8006),('192.168.43.124',8888)))
         # self.nodes.append(Node(('127.0.0.1',8004),('192.168.43.124',8888)))
 

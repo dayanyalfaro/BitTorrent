@@ -24,14 +24,15 @@ def ip_is_local(ip_string):
 
 # TODO: Hacer esto con netifaces.
 def get_local_ip():
+
     try:
         from netifaces import interfaces, ifaddresses, AF_INET
         ip = '127.0.0.1'
         li = []
 
         for ifacename in interfaces():
-            for add in ifaddresses(ifacename).setdefault(AF_INET, [{'addr': '00'}]):
-                if add['addr'] != '00' and add['addr'] != 'lo0':
+            for add in ifaddresses(ifacename).setdefault(AF_INET, [{'addr':'00'}]):
+                if add['addr'] != '00' and add['addr']!='lo0':
                     li.append(add['addr'])
 
         if ip in li:
@@ -43,7 +44,7 @@ def get_local_ip():
         return li
 
     except:
-        print("no tienes instalado netifaces")
+        print ("no tienes instalado netifaces")
 
     return ["127.0.0.1"]
 
