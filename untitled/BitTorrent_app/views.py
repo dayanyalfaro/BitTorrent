@@ -8,7 +8,6 @@ from django.http import HttpResponseRedirect
 from django.http import JsonResponse
 from BitTorrent_app.forms import AddressForm, UploadFileForm
 from BitTorrent_app.Logic.client import Client, ClientAutom
-from BitTorrent_app.Logic.tools import histsize
 from untitled.settings import STATICFILES_DIRS
 
 

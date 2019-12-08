@@ -519,6 +519,7 @@ class Client(object):
                     print("no id file open")
 
     def copy_file_from_directory(self, p_source, file_name):
+        file_name = remove_accents(file_name)
         p_dest = self.path + "/" + file_name
 
         def copy():
