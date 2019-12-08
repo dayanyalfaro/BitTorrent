@@ -18,33 +18,6 @@ def ClientAutom(path):
     c = Client(dht_ip, dht_port, path, addr)
     return c
 
-
-def mutex_rlock(f):
-    def wrapper(self, *args, **keyargs):
-        self.lock.acquire()
-        r = f(self, *args, **keyargs)
-        self.lock.release()
-        return r
-
-    return wrapper
-
-
-def verify_dht_conexion(func):
-    def wrapper(self, *args, **kwargs):
-        try:
-            with get_remote_node(self.comunicator.dht_ip, self.comunicator.dht_port) as remote:
-                remote.ping()
-        except:
-            actual_node = [self.comunicator.dht_ip, str(self.comunicator.dht_port)]
-            if actual_node in self.dht_nodes:
-                self.dht_nodes.remove(actual_node)
-            if self.dht_nodes:
-                self.comunicator.update_dht(self.dht_nodes[0][0], self.dht_nodes[0][1])
-        return func(self, *args, **kwargs)
-
-    return wrapper
-
-
 class Client(object):
     def __init__(self, dht_ip, dht_port, path, addr_listen):
         self.c_id = None
@@ -54,20 +27,18 @@ class Client(object):
         self.dwn_in_progress = []
         self.max_dwn = 0
         self.pending = []
-        self.running = []
         self.fd_dic_r = {}
         self.fd_dic_w = {}
         self.fd_to_close = []
         self.pub = []
 
-        self.lock = threading.Lock()
+        # self.lock = threading.Lock()
 
         self.addr_listen = addr_listen
         self.sock = socket(AF_INET, SOCK_STREAM)
         self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
         self.sock.bind(self.addr_listen)
         self.sock.listen(backlog)
-
 
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
@@ -79,8 +50,7 @@ class Client(object):
             print("no open Storage")
 
         self.set_id()
-
-        self.files = self.load_my_files()
+        self.files = self.see_myfiles()
 
         Thread(target=self.start_listen, args=()).start()
 
@@ -92,12 +62,9 @@ class Client(object):
     def start_listen(self):  # TODO poner lindo  el metodo
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
-        # fd_to_close = []
         pend_to_attend = [self.sock]
 
         while True:
-            # print("I am reading and writing")
-            # time.sleep(1)
             inputs = pend_to_attend + [t.fi for t in self.pending if not t.is_load]
             outputs = [t.fo for t in self.pending if t.is_load]
             inputs = inputs[:512]
@@ -109,20 +76,19 @@ class Client(object):
                 self.lock.acquire()
                 if s == self.sock:
                     conn, addr = self.sock.accept()
-                    # conn.setblocking(False)
                     pend_to_attend.append(conn)
                 elif s in pend_to_attend:
                     if (self.attend_client(s)):
                         self.fd_to_close.append((s, time.clock()))
                     pend_to_attend.remove(s)
                 else:
-                    t = self.fd_dic_r[s]  # TODO method Do_read_transaction
+                    t = self.fd_dic_r[s]
                     self.read_transaction(t)
                 self.lock.release()
 
             for s in wfd:
                 self.lock.acquire()
-                t = self.fd_dic_w[s]  # TODO method Do_write_transaction
+                t = self.fd_dic_w[s]
                 self.write_transaction(t)
                 self.lock.release()
 
@@ -153,7 +119,7 @@ class Client(object):
     @mutex_rlock
     def write_transaction(self, t):
         t.write()
-        # input("Dale\n")
+
         if t.type == 'dwn':
             dwn = self.download[t.dwn_id]
             if t.finish:  # TODO delete t.fi, t.fo from fd_dic
@@ -219,7 +185,7 @@ class Client(object):
             i.validate_timeout(15)
             if i.type == "dwn":
                 if i.is_fail:
-                   self.update_dwn_state(self.download[i.dwn_id], True)
+                    self.update_dwn_state(self.download[i.dwn_id],True)
                 if self.download[i.dwn_id].state == "pause":
                     print("Pause dwn", i.dwn_id, i.piece_id)
                     i.close()
@@ -238,8 +204,6 @@ class Client(object):
             fd, fd_time = x
             if time.clock() - fd_time > 20:
                 fd.close()
-                # if (self.fd_dic.get(fd, None) != None):
-                #     del self.fd_dic[fd]
             else:
                 fd_to_close_new.append(x)
         self.fd_to_close = fd_to_close_new
@@ -264,7 +228,6 @@ class Client(object):
                 fo.seek(offset)  # open a file in a specific position
                 size = int(rqs[3])  # size of the porcion of the file to send
                 self.create_transaction(fo, s, "send", size, -1, -1)
-                # time.sleep(0.1)
                 return False
             except:
                 pass
@@ -283,9 +246,9 @@ class Client(object):
     @mutex_rlock
     def potencial_location(self, file_name):
         """
-
-        :param file_name: 
-        :return: 
+        
+        :param file_name: name of the file
+        :return: a list with the nodes that have the file
         """
         location = self.get_file_location(file_name)
         p = []
@@ -301,7 +264,7 @@ class Client(object):
         return l
 
     @mutex_rlock
-    def has_file(self, file_name, addr):  # ok
+    def has_file(self, file_name, addr):
         size = -1
         try:
             s = self.connect_to_peer(addr)
@@ -416,7 +379,6 @@ class Client(object):
         if self.dwn_in_progress.__contains__(dwn.file_name):
             self.dwn_in_progress.remove(dwn.file_name)
         for i in range(len(dwn.pieces)):  # deleting pieces incomplets
-            p = dwn.pieces[i]
             p_path = self.path + "/" + dwn.file_name + str(i)
             try:
                 os.remove(p_path)
@@ -612,23 +574,11 @@ class Client(object):
     def get_len_file(self, file_name):
         return self.comunicator.get_len_file(file_name)
 
-    def read_len_file(self, path, file_name):
-        try:
-            f = open(path + "/" + file_name, "rb")
-            d = f.read(bufsize)
-            size = 0
-            while d:
-                size += len(d)
-                d = f.read(bufsize)
-            return size
-        except:
-            return -1
-
     @mutex_rlock
     @verify_dht_conexion
     def publish(self, file_name, size, torrent):
         self.files.append(file_name)
-        self.comunicator.publish(file_name, self.c_id, size, torrent)
+        self.comunicator.publish(file_name, self.c_id, size, torrent, self.files)
 
     @verify_dht_conexion
     def get_file_location(self, file):
@@ -640,18 +590,14 @@ class Client(object):
         all = self.comunicator.all_files()
         return all
 
-    def load_my_files(self):
-        extension = [".torrent", ".json", "id"]
-        files = [f for f in os.listdir(self.path) if not any(f.endswith(ext) for ext in extension)]
-        return files
-
+    @verify_dht_conexion
+    def see_myfiles(self):
+        all = self.comunicator.my_files(self.c_id)
+        return all
 
 def main():
     print("client.py")
 
-    l = [1, 2, 3, 4, 5]
-    l.remove(4)
-    print(l)
 
 
 if __name__ == "__main__":

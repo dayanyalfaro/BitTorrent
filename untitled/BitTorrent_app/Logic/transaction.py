@@ -18,7 +18,6 @@ class Download(object):
         self.actual_copy = 0
         self.potential = []
         self.is_fail = False
-        #TODO pause dwn
         self.state = "ejecution"
 
     def define_piece_length(self):
@@ -32,13 +31,10 @@ class Download(object):
             p_size = m.ceil(self.size/max_cant_pieces)
             return p_size
 
-
     def partition(self):
         """
         Segmentate the file in pieces
         """
-        # cantPieces = m.floor(m.log2(self.size))
-        # step = m.floor(self.size/cantPieces)   # m.floor(self.size ** 0.5)
         step =  self.define_piece_length()
 
         if step == 0 or step > self.size:
@@ -57,7 +53,7 @@ class Download(object):
                 piece_id, actual_offset, self.size - actual_offset
             )
 
-        print(self.file_name, "CANTIDAD PIECES:", piece_id + 1, "PIECE SIZE:", step, "FILE SIZE:" , self.size)
+        print(self.file_name, "CANTIDAD PIECES:", len(self.pieces), "PIECE SIZE:", step, "FILE SIZE:" , self.size)
 
     def distribute(self, pot_location):
         actual_n = 0
@@ -94,7 +90,6 @@ class Download(object):
         else:
             return -1
 
-
     def is_finish(self):
         return (self.count_finish == len(self.pieces)) and (self.count_finish != 0)
 
@@ -126,17 +121,12 @@ class Transaction(object):
 
     def write(self):
         try:
-            # TODO : Poner try para captar la excepcion, la escritura fallo
             le = len(self.data)
             if self.type == "dwn":
                 self.fo.write(self.data)
                 self.data_dwn += self.data
                 self.is_load = False
             if self.type == "send":
-                # print("data", self.data)
-                # print (self.fo)
-                # help(self.fo.send)
-                # self.fo.setblocking(False)
                 le = self.fo.send(self.data)
                 if(le == len(self.data)):
                     self.is_load = False
@@ -157,13 +147,6 @@ class Transaction(object):
             self.is_fail = True
             self.close()
             print ("Fail transaccion in write", self.dwn_id, self.piece_id)
-
-    def DoAll(self):
-        def copy():
-            while not self.finish and not self.is_fail:
-                self.read()
-                self.write()
-
 
     def read(self):
         bf = min(bufsize, self.size - self.actual_copy)
@@ -193,13 +176,5 @@ class Transaction(object):
 
     def __str__(self):
         return "%s -> %s, [%s], (%s), t: %s"%(str(self.fi), str(self.fo), str(self.is_fail), str(self.finish), str(self.type))
-
-
-
-def main():
-    print("transaction.py")
-    size = 1.5*1024*1024*1024
-    d = Download(3,"",size )
-    print(d.define_piece_length())
 
 
