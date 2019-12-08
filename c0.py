@@ -11,17 +11,18 @@ except:
 
 time.sleep(1)
 #
-c0 = Client( "127.0.0.1", 8888, p + "0", ("127.0.0.1", 9000))
+c0 = Client( "192.168.43.253", 8001, p + "0", ("192.168.43.253", 7001))
 time.sleep(1)
-# c0.copy_file_from_directory("./dht.py", "dht.py")
-# # time.sleep(1)
-# c0.copy_file_from_directory("./pulp.mp4", "pulp.mp4")
+
+c0.copy_file_from_directory("./file.pdf", "file.pdf")
+
+
+
+input()
+#
 # time.sleep(1)
-# c0.copy_file_from_directory("./chord.py", "chord.py")
-# # time.sleep(1)
-# c0.copy_file_from_directory("./kramer.avi", "kramer.avi")
-# # time.sleep(2)
-c0.copy_file_from_directory("./foto2.png", "foto2.png")
-
-
-
+#
+c0.Download("peli.avi")
+#
+#
+#

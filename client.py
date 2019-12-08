@@ -1,5 +1,5 @@
 import os
-import socket
+from socket import *
 import time
 import torrent_parser
 import json
@@ -10,6 +10,14 @@ from threading import Thread
 from middleware import Comunicator
 from tools import *
 from transaction import Transaction, Download
+
+def ClientAutom(path):
+    addr = get_auto_addr(7000, 7999)
+    dht_ip , dht_port = discover(addr[0], addr[1])
+    c = Client(dht_ip, dht_port,path, addr)
+    return c
+
+
 
 def verify_dht_conexion(func):
     def wrapper(self,*args,**kwargs):
@@ -37,8 +45,13 @@ class Client(object):
         self.fd_dic = {}
         self.fd_to_close = []
         self.pub = []
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
         self.addr_listen = addr_listen
+        self.sock = socket(AF_INET, SOCK_STREAM)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.sock.bind(self.addr_listen)
+        self.sock.listen(backlog)
+
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
 
@@ -57,14 +70,11 @@ class Client(object):
 
 
     def connect_to_peer(self, addr):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket(AF_INET, SOCK_STREAM)
         s.connect(addr)
         return s
 
     def start_listen(self): #TODO poner lindo  el metodo
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(self.addr_listen)
-        self.sock.listen(backlog)
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
         # fd_to_close = []
@@ -82,6 +92,7 @@ class Client(object):
             for s in rfd:
                 if s == self.sock:
                     conn, addr = self.sock.accept()
+                    # conn.setblocking(False)
                     pend_to_attend.append(conn)
                 elif s in pend_to_attend:
                     if(self.attend_client(s)):
@@ -126,8 +137,8 @@ class Client(object):
         if t.type == 'dwn':
             dwn = self.download[t.dwn_id]
             if t.finish:  # TODO delete t.fi, t.fo from fd_dic
-                check = self.check_piece_with_torrent(t.piece_id, t.data_dwn, t.size,
-                                                      dwn.file_name)  # check if the piece is correct
+                check = True#self.check_piece_with_torrent(t.piece_id, t.data_dwn, t.size,
+                                                     # dwn.file_name)  # check if the piece is correct
                 if check:
                     print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
                     next_p = dwn.success_piece(t.piece_id)
@@ -216,7 +227,11 @@ class Client(object):
                  False: if can not close socket s because a transaction use them
         """
         rqs = self.parse_rqs(s)
+        print("RQS",rqs)
 
+        print("RQS ", rqs)
+        if(rqs == None or len(rqs) == 0):
+            return True
         if rqs[0] == "GET":
             try:
                 offset = int(rqs[2])  # open file start in the offset
@@ -224,6 +239,7 @@ class Client(object):
                 fo.seek(offset)  # open a file in a specific position
                 size = int(rqs[3])  # size of the porcion of the file to send
                 self.create_transaction(fo, s, "send",size, -1, -1)
+                time.sleep(0.1)
                 return False
             except:
                 pass
@@ -264,7 +280,9 @@ class Client(object):
             s = self.connect_to_peer(addr)
             rqs = "HAS|" + file_name
             rqs = "%d|%s" % (len(rqs), rqs)
+
             s.send(rqs.encode())
+            print("rqs has file", rqs)
             size = int(self.parse_rqs(s)[0])
             s.close()
         except:
@@ -282,7 +300,7 @@ class Client(object):
                  4: the file exits
         """
         try:
-            self.download_torrent(file_name)
+            # self.download_torrent(file_name)
 
             if self.dwn_in_progress.__contains__(file_name):
                 print(file_name, "download in progress")
@@ -308,7 +326,7 @@ class Client(object):
                     p = dwn.pieces[i]
                     print(file_name + " Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                     self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-
+                self.dwn_in_progress.append(file_name)
                 return 0  # the download start
             else:
                 print("The file " + file_name + " is not available")
@@ -390,6 +408,7 @@ class Client(object):
         if fail:
             dwn.is_fail = True
             dwn.state = "fail"
+            print("FAIL Dwn ", dwn.file_name)
 
             for i in range(len(dwn.pieces)):  # deleting pieces incomplets
                 p = dwn.pieces[i]
@@ -421,6 +440,7 @@ class Client(object):
             w.close()
             self.publish(file_name, self.get_len_file(file_name), None)
         Thread(target= erase).start()
+        self.dwn_in_progress.remove(file_name)
 
     def parse_rqs(self, s):
         d = s.recv(1).decode()
@@ -431,8 +451,14 @@ class Client(object):
                 break
             l += d
             d = s.recv(1).decode()
-        rqs = s.recv(l).decode()
-        rqs = str(rqs).split("|")
+        rqs = None
+        if(l == ""):
+            return rqs
+        if(l is str):
+            print ("bad request, ", l)
+        else:
+            rqs = s.recv(l).decode()
+            rqs = str(rqs).split("|")
         return rqs
 
     def create_transaction(self, fi, fo, type_t, size, dwn_id, piece_id):
@@ -484,7 +510,7 @@ class Client(object):
             self.publish(file_name, size, metadata)  #publish a file location
             # except:
             #     print("failed open file in copy from a directory")
-            # os.remove(p_source)
+            os.remove(p_source)
         self.pub.append(Thread(target=copy, args=()))
         self.pub[-1].start()
 

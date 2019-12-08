@@ -4,7 +4,7 @@ import sys
 import hashlib
 import time
 
-from tools import get_auto_addr, discover
+from tools import get_auto_addr, discover, SIZE, LOGSIZE
 
 maxclient = "#maxclient"
 allfiles = "#allfiles"
