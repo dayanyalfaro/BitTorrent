@@ -95,6 +95,12 @@ def get_hash(string):
 def hashb(data):
     return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder )  % (SIZE)
 
+def remove_accents(text):
+    import unicodedata
+    text = unicodedata.normalize('NFD', text).encode('ascii', 'ignore').decode('utf-8')
+    return str(text)
+
+
 def main():
     print("tools")
     a = ["0","1","2", "3", "4"]
