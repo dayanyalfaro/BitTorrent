@@ -30,13 +30,14 @@ class Comunicator(object):
         id = dht.get(get_hash(maxclient))
         dht.set(get_hash(maxclient), id + 1)
         dht.set(get_hash(idclient + str(id)), (self.addr_listen))
+        dht.set(get_hash(myfiles + "|" + str(id)), [])
         return id
 
     def update_idclient(self, id, addr):
         dht = get_remote_node(self.dht_ip, self.dht_port)
         dht.set(get_hash(idclient + str(id)), addr)
 
-    def publish(self, file_name, c_id, size, torrent):  # ver lo del id del cliente
+    def publish(self, file_name, c_id, size, torrent, files):  # ver lo del id del cliente
         """
             Publish a torrent in the tracker
         """
@@ -63,8 +64,9 @@ class Comunicator(object):
             if not v.__contains__(c_id):
                 v.append(c_id)
                 dht.set(get_hash(file_name), v)
-        print("client ", c_id, "published file ", file_name)
 
+        dht.set(get_hash(myfiles + "|" + str(c_id)),files)
+        print("client ", c_id, "published file ", file_name)
 
     def get_files(self, step):
         """
@@ -84,6 +86,10 @@ class Comunicator(object):
 
         return files
 
+    def my_files(self, c_id):
+        dht = get_remote_node(self.dht_ip, self.dht_port)
+        files = dht.get(get_hash(myfiles + "|" + str(c_id)))
+        return files
 
     def get_len_file(self, file_name):
         dht = get_remote_node(self.dht_ip, self.dht_port)

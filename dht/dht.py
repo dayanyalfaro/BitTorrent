@@ -48,7 +48,7 @@ def main():
     while 1:
         time.sleep(10)
         print('******************************************************************************************')
-        print(d.get_all())
+        # print(d.get_all())
         print("RED:\n",d.get_sub_red())
 
 

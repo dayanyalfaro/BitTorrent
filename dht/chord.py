@@ -30,11 +30,10 @@ def repeat_and_sleep(t):
     def decorator(f):
         def wrapper(*args):
             while 1:
-                f(*args)
-                # try:
-                #     f(*args)
-                # except:
-                #     pass
+                try:
+                    f(*args)
+                except:
+                    pass
                 time.sleep(t)
         return wrapper
     return decorator
@@ -48,7 +47,6 @@ class Node:
 
         self.id = f"{self.ip}:{self.port}"
         self.key = get_hash(self.id)
-        # self.key = int.from_bytes(hashlib.sha1(self.id.encode()).digest(), byteorder= sys.byteorder) % SIZE
         self._info = {'id': self.id, 'key': self.key}
 
         self.pred_lock = threading.Lock()
