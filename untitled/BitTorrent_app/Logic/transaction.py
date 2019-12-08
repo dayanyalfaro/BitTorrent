@@ -39,7 +39,7 @@ class Download(object):
         """
         # cantPieces = m.floor(m.log2(self.size))
         # step = m.floor(self.size/cantPieces)   # m.floor(self.size ** 0.5)
-        step = self.define_piece_length()
+        step =  self.define_piece_length()
 
         if step == 0 or step > self.size:
             step = self.size
@@ -127,19 +127,29 @@ class Transaction(object):
     def write(self):
         try:
             # TODO : Poner try para captar la excepcion, la escritura fallo
+            le = len(self.data)
             if self.type == "dwn":
                 self.fo.write(self.data)
                 self.data_dwn += self.data
+                self.is_load = False
             if self.type == "send":
-                self.fo.send(self.data)
-            self.is_load = False
-            self.actual_copy += len(self.data)
+                # print("data", self.data)
+                # print (self.fo)
+                # help(self.fo.send)
+                # self.fo.setblocking(False)
+                le = self.fo.send(self.data)
+                if(le == len(self.data)):
+                    self.is_load = False
+                else:
+                    self.data = self.data[le:]
+
+            self.actual_copy += le
             if self.actual_copy >= self.size:
                 self.finish = True
                 self.fi.close()
                 if self.type == "dwn":
                     self.fo.close()
-            elif len(self.data) == 0:
+            elif le == 0:
                 self.is_fail = True
                 self.close()
             self.time = time.clock()
@@ -147,6 +157,12 @@ class Transaction(object):
             self.is_fail = True
             self.close()
             print ("Fail transaccion in write", self.dwn_id, self.piece_id)
+
+    def DoAll(self):
+        def copy():
+            while not self.finish and not self.is_fail:
+                self.read()
+                self.write()
 
 
     def read(self):
@@ -156,6 +172,7 @@ class Transaction(object):
                 self.data = self.fi.recv(bf)
             if self.type == "send":
                 self.data = self.fi.read(bf)
+
             self.is_load = True
         except:
             self.is_fail = True
@@ -186,9 +203,3 @@ def main():
     print(d.define_piece_length())
 
 
-
-
-
-
-if __name__ == "__main__":
-    main()

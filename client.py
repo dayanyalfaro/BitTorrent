@@ -97,7 +97,7 @@ class Client(object):
         pend_to_attend = [self.sock]
 
         while True:
-            print("I am reading and writing")
+            # print("I am reading and writing")
             # time.sleep(1)
             inputs = pend_to_attend + [t.fi for t in self.pending if not t.is_load]
             outputs = [t.fo for t in self.pending if t.is_load]
@@ -263,7 +263,7 @@ class Client(object):
                 fo.seek(offset)  # open a file in a specific position
                 size = int(rqs[3])  # size of the porcion of the file to send
                 self.create_transaction(fo, s, "send", size, -1, -1)
-                time.sleep(0.1)
+                # time.sleep(0.1)
                 return False
             except:
                 pass
