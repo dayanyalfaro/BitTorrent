@@ -125,6 +125,8 @@ def download_file(request, filename):
     else:
         if result == 1:
             message = f'{filename} is not available at the moment'
+        if result == 2:
+            message = f'Download of {filename} failed'
         if result == 3:
             message = f'Download of {filename} is already in progress'
         if result == 4:

@@ -18,7 +18,7 @@ SIZE = 1<<LOGSIZE
 
 # SPECIAL CONSTANTS
 backlog = 50
-bufsize = 1024*1024
+bufsize = 10*1024
 totalP = 5 # the max number of pieces in download
 histsize = 20
 maxpage = 5
@@ -101,13 +101,13 @@ def remove_accents(text):
     return str(text)
 
 
-def main():
-    print("tools")
-    a = ["0","1","2", "3", "4"]
-    p = Pagin()
-    p.build(a, "1")
-    print(p.pages)
-
-
-if __name__ == "__main__":
-    main()
+# def main():
+#     print("tools")
+#     a = ["0","1","2", "3", "4"]
+#     p = Pagin()
+#     p.build(a, "1")
+#     print(p.pages)
+#
+#
+# if __name__ == "__main__":
+#     main()

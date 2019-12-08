@@ -218,6 +218,8 @@ class Client(object):
         for i in self.pending:
             i.validate_timeout(15)
             if i.type == "dwn":
+                if i.is_fail:
+                   self.update_dwn_state(self.download[i.dwn_id], True)
                 if self.download[i.dwn_id].state == "pause":
                     print("Pause dwn", i.dwn_id, i.piece_id)
                     i.close()
@@ -326,7 +328,7 @@ class Client(object):
                  4: the file exits
         """
         try:
-            # self.download_torrent(file_name)
+            self.download_torrent(file_name)
 
             if self.dwn_in_progress.__contains__(file_name):
                 print(file_name, "download in progress")
