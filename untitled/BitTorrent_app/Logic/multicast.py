@@ -21,7 +21,6 @@ def ip_is_local(ip_string):
     return re.match(combined_regex,
                     ip_string) is not None  # is not None is just a sneaky way of converting to a boolean
 
-
 def get_local_ip():
 
     try:
