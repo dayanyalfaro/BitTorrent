@@ -3,23 +3,26 @@ import hashlib
 import sys
 import math as m
 
+
+
 # SPECIAL_DHT_KEYS
 maxclient = "#maxclient"
 allfiles = "#allfiles"
 idclient = "#idclient"
 sizefile = "#sizef"
-filestep = "#step"  # files in a particular step
-maxstep = "#maxstep"  # max step created
-lenstep = 50  # cant files in each step
+filestep = "#step"    #files in a particular step
+maxstep = "#maxstep"  #max step created
+lenstep = 50     #cant files in each step
 LOGSIZE = 64
-SIZE = 1 << LOGSIZE
+SIZE = 1<<LOGSIZE
 
 # SPECIAL CONSTANTS
-backlog = 50
-bufsize = 1
-totalP = 5  # the max number of pieces in download
+backlog = 1024
+bufsize = 10*1024
+totalP = 5 # the max number of pieces in download
 histsize = 20
 maxpage = 5
+
 
 
 def get_remote_node(ip, port):
@@ -27,13 +30,11 @@ def get_remote_node(ip, port):
     p = Pyro4.Proxy(uri)
     return p
 
-
 ## AutoDiscover tool
 
 from multicast import listen_loop
 from multicast import announce_loop
 from multicast import get_local_ip
-from threading import Thread
 import time
 from socket import *
 
@@ -65,6 +66,7 @@ def get_free_port(ip, bport, eport):
         # try:
         client = socket(AF_INET, SOCK_STREAM)
         conexion = client.connect_ex((ip, port))
+        print(conexion)
         if (conexion != 0):
             client.close()
             time.sleep(2)
@@ -87,18 +89,15 @@ def start_service(obj, ip, port):
         {obj: "%s:%s" % (ip, str(port))}, host=ip, port=port, ns=False
     )
 
-
 def get_hash(string):
-    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder) % (SIZE)
-
+    return int.from_bytes(hashlib.sha1(string.encode()).digest(), byteorder=sys.byteorder ) % (SIZE)
 
 def hashb(data):
-    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder) % (SIZE)
-
+    return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder )  % (SIZE)
 
 def main():
     print("tools")
-    a = ["0", "1", "2", "3", "4"]
+    a = ["0","1","2", "3", "4"]
     p = Pagin()
     p.build(a, "1")
     print(p.pages)
