@@ -1,29 +1,50 @@
 import os
-import socket
+from socket import *
 import time
-import torrent_parser
+# import torrent_parser
 import json
 import random as r
 from select import select
 from threading import Thread
+import threading
 
 from middleware import Comunicator
 from tools import *
 from transaction import Transaction, Download
 
+
+def ClientAutom(path):
+    addr = get_auto_addr(7000, 7999)
+    dht_ip, dht_port = discover(addr[0], addr[1])
+    c = Client(dht_ip, dht_port, path, addr)
+    return c
+
+
+def mutex_rlock(f):
+    def wrapper(self, *args, **keyargs):
+        self.lock.acquire()
+        r = f(self, *args, **keyargs)
+        self.lock.release()
+        return r
+
+    return wrapper
+
+
 def verify_dht_conexion(func):
-    def wrapper(self,*args,**kwargs):
+    def wrapper(self, *args, **kwargs):
         try:
-            with get_remote_node(self.comunicator.dht_ip,self.comunicator.dht_port) as remote:
+            with get_remote_node(self.comunicator.dht_ip, self.comunicator.dht_port) as remote:
                 remote.ping()
         except:
-            actual_node = [self.comunicator.dht_ip,str(self.comunicator.dht_port)]
+            actual_node = [self.comunicator.dht_ip, str(self.comunicator.dht_port)]
             if actual_node in self.dht_nodes:
                 self.dht_nodes.remove(actual_node)
             if self.dht_nodes:
-                self.comunicator.update_dht(self.dht_nodes[0][0],self.dht_nodes[0][1])
-        return func(self,*args,**kwargs)
+                self.comunicator.update_dht(self.dht_nodes[0][0], self.dht_nodes[0][1])
+        return func(self, *args, **kwargs)
+
     return wrapper
+
 
 class Client(object):
     def __init__(self, dht_ip, dht_port, path, addr_listen):
@@ -34,14 +55,24 @@ class Client(object):
         self.dwn_in_progress = []
         self.max_dwn = 0
         self.pending = []
-        self.fd_dic = {}
+        self.running = []
+        self.fd_dic_r = {}
+        self.fd_dic_w = {}
         self.fd_to_close = []
         self.pub = []
-        self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+        self.lock = threading.Lock()
+
         self.addr_listen = addr_listen
+        self.sock = socket(AF_INET, SOCK_STREAM)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.sock.bind(self.addr_listen)
+        self.sock.listen(backlog)
+
+
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
-
+        self.lock = threading.RLock()
 
         try:
             os.mkdir(self.path)
@@ -52,26 +83,22 @@ class Client(object):
 
         self.files = self.load_my_files()
 
-
         Thread(target=self.start_listen, args=()).start()
 
-
     def connect_to_peer(self, addr):
-        s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        s = socket(AF_INET, SOCK_STREAM)
         s.connect(addr)
         return s
 
-    def start_listen(self): #TODO poner lindo  el metodo
-        self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        self.sock.bind(self.addr_listen)
-        self.sock.listen(backlog)
+    def start_listen(self):  # TODO poner lindo  el metodo
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
         # fd_to_close = []
         pend_to_attend = [self.sock]
 
         while True:
-
+            # print("I am reading and writing")
+            # time.sleep(1)
             inputs = pend_to_attend + [t.fi for t in self.pending if not t.is_load]
             outputs = [t.fo for t in self.pending if t.is_load]
             inputs = inputs[:512]
@@ -80,28 +107,32 @@ class Client(object):
             rfd, wfd, efd = select(inputs, outputs, [], 2)
 
             for s in rfd:
+                self.lock.acquire()
                 if s == self.sock:
                     conn, addr = self.sock.accept()
+                    # conn.setblocking(False)
                     pend_to_attend.append(conn)
                 elif s in pend_to_attend:
-                    if(self.attend_client(s)):
-                        self.fd_to_close.append((s,time.clock()))
+                    if (self.attend_client(s)):
+                        self.fd_to_close.append((s, time.clock()))
                     pend_to_attend.remove(s)
                 else:
-                    t = self.fd_dic[s] #TODO method Do_read_transaction
+                    t = self.fd_dic_r[s]  # TODO method Do_read_transaction
                     self.read_transaction(t)
-
+                self.lock.release()
 
             for s in wfd:
-
-                t = self.fd_dic[s] #TODO method Do_write_transaction
+                self.lock.acquire()
+                t = self.fd_dic_w[s]  # TODO method Do_write_transaction
                 self.write_transaction(t)
+                self.lock.release()
 
-
+            self.lock.acquire()
             self.update_pending()
             self.update_fd_to_close()
+            self.lock.release()
 
-
+    @mutex_rlock
     def read_transaction(self, t):
         t.read()
 
@@ -120,14 +151,15 @@ class Client(object):
                     p = dwn.pieces[t.piece_id]
                     self.dwn_file_from_peer(dwn.file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
 
+    @mutex_rlock
     def write_transaction(self, t):
         t.write()
-
+        # input("Dale\n")
         if t.type == 'dwn':
             dwn = self.download[t.dwn_id]
             if t.finish:  # TODO delete t.fi, t.fo from fd_dic
-                check = self.check_piece_with_torrent(t.piece_id, t.data_dwn, t.size,
-                                                      dwn.file_name)  # check if the piece is correct
+                check = True  # self.check_piece_with_torrent(t.piece_id, t.data_dwn, t.size,
+                #                                      dwn.file_name)  # check if the piece is correct
                 if check:
                     print(dwn.file_name, "SUCCESS Piece:", t.piece_id)
                     next_p = dwn.success_piece(t.piece_id)
@@ -182,6 +214,7 @@ class Client(object):
             if t.finish:
                 self.fd_to_close.append((t.fo, time.clock()))
 
+    @mutex_rlock
     def update_pending(self):
         for i in self.pending:
             i.validate_timeout(15)
@@ -189,25 +222,28 @@ class Client(object):
                 if self.download[i.dwn_id].state == "pause":
                     print("Pause dwn", i.dwn_id, i.piece_id)
                     i.close()
-                if self.download[i.dwn_id].state == "cancel" :
+                if self.download[i.dwn_id].state == "cancel":
                     print("Cancel dwn", i.dwn_id, i.piece_id)
                     i.close()
 
         self.pending = [i for i in self.pending if not i.finish and not i.is_fail and not (
-            (i.type == "dwn") and (self.download[i.dwn_id].state == "pause" or self.download[i.dwn_id].state == "cancel" ))]
+            (i.type == "dwn") and (
+            self.download[i.dwn_id].state == "pause" or self.download[i.dwn_id].state == "cancel"))]
 
+    @mutex_rlock
     def update_fd_to_close(self):
         fd_to_close_new = []
         for x in self.fd_to_close:  # closing open socket
             fd, fd_time = x
             if time.clock() - fd_time > 20:
                 fd.close()
-                if (self.fd_dic.get(fd, None) != None):
-                    del self.fd_dic[fd]
+                # if (self.fd_dic.get(fd, None) != None):
+                #     del self.fd_dic[fd]
             else:
                 fd_to_close_new.append(x)
         self.fd_to_close = fd_to_close_new
 
+    @mutex_rlock
     def attend_client(self, s):
         """
         Attend a client connected to me
@@ -217,13 +253,17 @@ class Client(object):
         """
         rqs = self.parse_rqs(s)
 
+        print("RQS ", rqs)
+        if (rqs == None or len(rqs) == 0):
+            return True
         if rqs[0] == "GET":
             try:
                 offset = int(rqs[2])  # open file start in the offset
                 fo = open(self.path + "/" + rqs[1], "rb")
                 fo.seek(offset)  # open a file in a specific position
                 size = int(rqs[3])  # size of the porcion of the file to send
-                self.create_transaction(fo, s, "send",size, -1, -1)
+                self.create_transaction(fo, s, "send", size, -1, -1)
+                # time.sleep(0.1)
                 return False
             except:
                 pass
@@ -239,9 +279,10 @@ class Client(object):
                 s.send("2|-1".encode())
         return True
 
+    @mutex_rlock
     def potencial_location(self, file_name):
         """
-        
+
         :param file_name: 
         :return: 
         """
@@ -258,19 +299,23 @@ class Client(object):
         l = [n[0] for n in l]
         return l
 
+    @mutex_rlock
     def has_file(self, file_name, addr):  # ok
         size = -1
         try:
             s = self.connect_to_peer(addr)
             rqs = "HAS|" + file_name
             rqs = "%d|%s" % (len(rqs), rqs)
+
             s.send(rqs.encode())
+            print("rqs has file", rqs)
             size = int(self.parse_rqs(s)[0])
             s.close()
         except:
             pass
         return size >= 0
 
+    @mutex_rlock
     def Download(self, file_name):
         """
 
@@ -282,7 +327,7 @@ class Client(object):
                  4: the file exits
         """
         try:
-            self.download_torrent(file_name)
+            # self.download_torrent(file_name)
 
             if self.dwn_in_progress.__contains__(file_name):
                 print(file_name, "download in progress")
@@ -302,13 +347,14 @@ class Client(object):
                 dwn.build(location)
 
                 cant_pieces = len(dwn.pieces)
-                end = min(cant_pieces,totalP)
+                end = min(cant_pieces, totalP)
 
-                for i in range(0, end):  #start to download the first window of pieces
+                for i in range(0, end):  # start to download the first window of pieces
                     p = dwn.pieces[i]
                     print(file_name + " Piece:" + str(i) + " -->  ", p.attendant, "Size: ", p.size)
                     self.dwn_file_from_peer(file_name, p.attendant, p.offset, p.size, dwn.id, p.id)
-
+                self.dwn_in_progress.append(file_name)
+                time.sleep(1)
                 return 0  # the download start
             else:
                 print("The file " + file_name + " is not available")
@@ -320,12 +366,12 @@ class Client(object):
     def Pause(self, dwn_id):
         dwn = self.download[dwn_id]
         if dwn.state == "ejecution":
-            print("Pause ",dwn.file_name)
+            print("Pause ", dwn.file_name)
             dwn.state = "pause"
 
-            for i in range(len(dwn.pieces)):#deleting pieces incomplets
+            for i in range(len(dwn.pieces)):  # deleting pieces incomplets
                 p = dwn.pieces[i]
-                if not p.finish: #delete the file of this piece
+                if not p.finish:  # delete the file of this piece
                     p_path = self.path + "/" + dwn.file_name + str(i)
                     try:
                         os.remove(p_path)
@@ -341,7 +387,7 @@ class Client(object):
         dwn = self.download[dwn_id]
 
         dwn.is_fail = False
-        print("CANT PIECES FINISH ",dwn.count_finish)
+        print("CANT PIECES FINISH ", dwn.count_finish)
         location = self.potencial_location(dwn.file_name)
         dwn.potential = location
         if len(location):
@@ -376,6 +422,7 @@ class Client(object):
             except:
                 pass
 
+    @mutex_rlock
     def dwn_file_from_peer(self, file_name, addr, offset, dwn_size, dwn_id, piece_id):
         s = self.connect_to_peer(addr)
 
@@ -386,10 +433,12 @@ class Client(object):
         fo = open(self.path + "/" + file_name + str(piece_id), "wb")
         self.create_transaction(s, fo, "dwn", dwn_size, dwn_id, piece_id)
 
-    def update_dwn_state(self, dwn, fail = False, finish = False):
+    @mutex_rlock
+    def update_dwn_state(self, dwn, fail=False, finish=False):
         if fail:
             dwn.is_fail = True
             dwn.state = "fail"
+            print("FAIL Dwn ", dwn.file_name)
 
             for i in range(len(dwn.pieces)):  # deleting pieces incomplets
                 p = dwn.pieces[i]
@@ -403,13 +452,14 @@ class Client(object):
         elif finish:
             dwn.state = "finish"
 
+    @mutex_rlock
     def reconstruct_file(self, file_name, number_pieces):
         def erase():
             w = open(self.path + "/" + file_name, 'wb')
             for i in range(number_pieces):
                 p = self.path + "/" + file_name + str(i)
                 try:
-                    ri = open(p,"rb")
+                    ri = open(p, "rb")
                     data = ri.read(bufsize)
                     while len(data):
                         w.write(data)
@@ -420,7 +470,9 @@ class Client(object):
                     pass
             w.close()
             self.publish(file_name, self.get_len_file(file_name), None)
-        Thread(target= erase).start()
+
+        Thread(target=erase).start()
+        self.dwn_in_progress.remove(file_name)
 
     def parse_rqs(self, s):
         d = s.recv(1).decode()
@@ -431,15 +483,22 @@ class Client(object):
                 break
             l += d
             d = s.recv(1).decode()
-        rqs = s.recv(l).decode()
-        rqs = str(rqs).split("|")
+        rqs = None
+        if (l == ""):
+            return rqs
+        if (l is str):
+            print("bad request, ", l)
+        else:
+            rqs = s.recv(l).decode()
+            rqs = str(rqs).split("|")
         return rqs
 
+    @mutex_rlock
     def create_transaction(self, fi, fo, type_t, size, dwn_id, piece_id):
         t = Transaction(fi, fo, type_t, size, dwn_id, piece_id)
         self.pending.append(t)
-        self.fd_dic[fi] = t
-        self.fd_dic[fo] = t
+        self.fd_dic_r[fi] = t
+        self.fd_dic_w[fo] = t
 
     @verify_dht_conexion
     def set_id(self):
@@ -477,22 +536,24 @@ class Client(object):
             fi.close()
             fo.close()
 
-            dwn = Download(-1,file_name, size)
+            dwn = Download(-1, file_name, size)
             dwn.partition()
+
             metadata = self.torrent_metadata(dwn)
-            self.create_torrent( metadata)
-            self.publish(file_name, size, metadata)  #publish a file location
+            # self.create_torrent( metadata)
+            self.publish(file_name, size, metadata)  # publish a file location
             # except:
             #     print("failed open file in copy from a directory")
             # os.remove(p_source)
+
         self.pub.append(Thread(target=copy, args=()))
         self.pub[-1].start()
 
-    def download_torrent(self, file_name):
-        t_name = file_name + ".torrent"
-        t = self.get_torrent(t_name)
-        self.create_torrent(t)
-        print("Client " + str(self.c_id) + " download " + file_name + ".torrent")
+    # def download_torrent(self, file_name):
+    #     t_name = file_name + ".torrent"
+    #     t = self.get_torrent(t_name)
+    #     self.create_torrent(t)
+    #     print("Client " + str(self.c_id) + " download " + file_name + ".torrent")
 
     def torrent_metadata(self, dwn):
         t = {}
@@ -520,27 +581,27 @@ class Client(object):
         t = self.comunicator.get_torrent(torrent_name)
         return t
 
-    def create_torrent(self,metadata):
-        file_name = metadata["file"]
-        path = self.path + "/" + file_name
-        torrent_parser.create_torrent_file(f'{path}.torrent', metadata)
+    # def create_torrent(self,metadata):
+    #     file_name = metadata["file"]
+    #     path = self.path + "/" + file_name
+    #     torrent_parser.create_torrent_file(f'{path}.torrent', metadata)
 
-    def parse_torrent(self, file_name):
-        path = self.path + "/" +file_name + ".torrent"
-        t = torrent_parser.parse_torrent_file(path)
-        return t
+    # def parse_torrent(self, file_name):
+    #     path = self.path + "/" +file_name + ".torrent"
+    #     t = torrent_parser.parse_torrent_file(path)
+    #     return t
 
-    def check_piece_with_torrent(self, p_id, p_data, p_size, file_name):
-        t = self.parse_torrent(file_name)
-        p_hash = hashb(p_data)
-        if p_size != t["len_piece|" + str(p_id)]:
-            return False
-        else:
-            return p_hash == t["hash_piece|" + str(p_id)]
+    # def check_piece_with_torrent(self, p_id, p_data, p_size, file_name):
+    #     t = self.parse_torrent(file_name)
+    #     p_hash = hashb(p_data)
+    #     if p_size != t["len_piece|" + str(p_id)]:
+    #         return False
+    #     else:
+    #         return p_hash == t["hash_piece|" + str(p_id)]
 
     def torrent_exists(self, file_name):
         try:
-            t = open(self.path + "/" + file_name  + ".torrent" , "r")
+            t = open(self.path + "/" + file_name + ".torrent", "r")
         except:
             return False
         return True
@@ -561,6 +622,7 @@ class Client(object):
         except:
             return -1
 
+    @mutex_rlock
     @verify_dht_conexion
     def publish(self, file_name, size, torrent):
         self.files.append(file_name)
@@ -577,27 +639,19 @@ class Client(object):
         return all
 
     def load_my_files(self):
-        extension = [".torrent", ".json" , "id"]
+        extension = [".torrent", ".json", "id"]
         files = [f for f in os.listdir(self.path) if not any(f.endswith(ext) for ext in extension)]
         return files
-
-    def torrent_exists(self, file_name):
-        try:
-            t = open(self.path + "/" + file_name  + ".torrent" , "r")
-        except:
-            return False
-        return True
 
 
 def main():
     print("client.py")
 
-    l = [1,2,3,4,5]
+    l = [1, 2, 3, 4, 5]
     l.remove(4)
     print(l)
 
 
-
-
 if __name__ == "__main__":
     main()
+

@@ -45,8 +45,13 @@ class Client(object):
         self.fd_dic = {}
         self.fd_to_close = []
         self.pub = []
-        self.sock = socket(AF_INET, SOCK_STREAM)
+
         self.addr_listen = addr_listen
+        self.sock = socket(AF_INET, SOCK_STREAM)
+        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
+        self.sock.bind(self.addr_listen)
+        self.sock.listen(backlog)
+
         self.dht_nodes = self.comunicator.get_alternative_nodes()
 
 
@@ -70,9 +75,6 @@ class Client(object):
         return s
 
     def start_listen(self): #TODO poner lindo  el metodo
-        self.sock.setsockopt(SOL_SOCKET, SO_REUSEADDR, 1)
-        self.sock.bind(self.addr_listen)
-        self.sock.listen(backlog)
         print(">Client " + str(self.c_id) + " is listening on ", self.addr_listen)
 
         # fd_to_close = []

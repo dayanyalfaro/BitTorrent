@@ -6,8 +6,9 @@ import random
 import hashlib
 import time
 import sys
+from tools import SIZE, LOGSIZE
 
-from untitled.BitTorrent_app.Logic.settings import *
+# from untitled.BitTorrent_app.Logic.settings import *
 from tools import announce
 # from untitled.BitTorrent_app.Logic.tools import hash
 
