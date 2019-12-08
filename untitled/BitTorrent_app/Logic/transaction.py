@@ -118,6 +118,7 @@ class Transaction(object):
         self.dwn_id = dwn_id
         self.piece_id = piece_id
         self.time = time.clock()
+        self.timeout_error = False
 
     def write(self):
         try:
@@ -170,6 +171,8 @@ class Transaction(object):
     def validate_timeout(self, time_out):
         if(time.clock() - self.time > time_out):
             self.is_fail = True
+            if self.type == "dwn":
+                self.timeout_error = True
             self.close()
             print ("Fail transaction because timeout:", time_out)
             # TODO hacer prueba de socket aqui un poco mas fuertes.

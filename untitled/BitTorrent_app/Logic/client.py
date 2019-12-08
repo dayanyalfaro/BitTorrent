@@ -184,7 +184,7 @@ class Client(object):
         for i in self.pending:
             i.validate_timeout(15)
             if i.type == "dwn":
-                if i.is_fail:
+                if i.timeout_error:
                     self.update_dwn_state(self.download[i.dwn_id],True)
                 if self.download[i.dwn_id].state == "pause":
                     print("Pause dwn", i.dwn_id, i.piece_id)
