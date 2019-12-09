@@ -83,7 +83,7 @@ def get_free_port(ip, bport, eport):
         # try:
         client = socket(AF_INET, SOCK_STREAM)
         conexion = client.connect_ex((ip, port))
-        print(conexion)
+        # print(conexion)
         if (conexion != 0):
             client.close()
             time.sleep(2)

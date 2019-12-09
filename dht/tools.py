@@ -66,7 +66,7 @@ def get_free_port(ip, bport, eport):
         # try:
         client = socket(AF_INET, SOCK_STREAM)
         conexion = client.connect_ex((ip, port))
-        print(conexion)
+        # print(conexion)
         if (conexion != 0):
             client.close()
             time.sleep(2)
@@ -95,13 +95,3 @@ def get_hash(string):
 def hashb(data):
     return int.from_bytes(hashlib.sha1(data).digest(), byteorder=sys.byteorder )  % (SIZE)
 
-def main():
-    print("tools")
-    a = ["0","1","2", "3", "4"]
-    p = Pagin()
-    p.build(a, "1")
-    print(p.pages)
-
-
-if __name__ == "__main__":
-    main()

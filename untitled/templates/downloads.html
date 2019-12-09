@@ -96,14 +96,15 @@
                                 cancelbutton = document.getElementById("cancelbutton".concat(i.toString()));
                                 cancelbutton.style.display = "none";
 
-                                bar.className = "progress-bar color2"
+                                bar.className = "progress-bar color2";
 
                             }
                             if (data["history"][i.toString()]["state"] == "fail") {
                                 button = document.getElementById("button".concat(i.toString()));
                                 button.innerText = "Retry";
                                 button.href = "/restore/".concat(i.toString());
-                                bar.className = "progress-bar color4"
+                                button.className = "fa fa-download";
+                                bar.className = "progress-bar color4";
                             }
                             if (data["history"][i.toString()]["state"] != "fail" &&
                                 data["history"][i.toString()]["state"] != "finish" &&
