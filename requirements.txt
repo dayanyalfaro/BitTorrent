@@ -1,4 +1,4 @@
-django == 2.2.7
+django == 2.2.22
 torrent-parser
 Pyro4
 netifaces
